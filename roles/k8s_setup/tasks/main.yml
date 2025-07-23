@@ -185,7 +185,10 @@
     creates: /etc/cni/net.d/calico-kubeconfig
 
 - name: commands 
-  command: pwd && echo "{{ playbook_dir }}"
+  command: pwd
+
+- name: commands 
+  command: echo "{{ playbook_dir }}"
 
 # Step 12: Deploy monitoring and nginx
 - name: Deploy monitoring and nginx workloads
