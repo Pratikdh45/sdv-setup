@@ -8,19 +8,18 @@
   become: true
   become_user: root
 
-
-- name: MySql deploy and svc Playbook
+- name: Deploy pv & pvc Playbook
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-deploy-and-svc.yml"
+    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml"
     state: present
     kubeconfig: /etc/kubernetes/admin.conf
     validate_certs: no
   become: true
   become_user: root
 
-- name: Deploy pv & pvc Playbook
+- name: MySql deploy and svc Playbook
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml"
+    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-deploy-and-svc.yml"
     state: present
     kubeconfig: /etc/kubernetes/admin.conf
     validate_certs: no

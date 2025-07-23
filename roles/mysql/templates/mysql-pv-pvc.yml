@@ -7,19 +7,19 @@ metadata:
 spec:
   storageClassName: sdv-local-storage
   capacity:
-    storage: 10Gi ###Change as per requirement
+    storage: 1Gi ###Change as per requirement
   accessModes:
     - ReadWriteOnce 
   hostPath:
     path: "/mnt/data" ###Change location as per requirement
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: kubernetes.io/hostname
-          operator: In
-          values:
-          - vunetpock8sworker2
+  # nodeAffinity:
+  #   required:
+  #     nodeSelectorTerms:
+  #     - matchExpressions:
+  #       - key: kubernetes.io/hostname
+  #         operator: In
+  #         values:
+  #         - vunetpock8sworker2
 --- 
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -31,4 +31,4 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi ###Change as per requirement and according to above PV storage size 
+      storage: 1Gi ###Change as per requirement and according to above PV storage size 
