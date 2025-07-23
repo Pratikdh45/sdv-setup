@@ -37,7 +37,7 @@ spec:
       #nodeSelector:
       #  kubernetes.io/hostname: worker
 --- 
-apiVersion: v1
+apiVersion: apps/v1
 kind: Service
 metadata:
   name: mysql
