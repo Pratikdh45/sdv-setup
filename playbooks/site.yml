@@ -1,6 +1,8 @@
 - name: Deploy stack on EC2 with Kubernetes
   hosts: local
   become: true
+  become_user: root
+  gather_facts: true
   roles:
     # - python
     - k8s_setup

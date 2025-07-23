@@ -9,6 +9,7 @@
         validate_certs: no
         kubeconfig: /etc/kubernetes/admin.conf
       become: true
+      become_user: root
 
 
     - name: Deploy Node Exporter DaemonSet
@@ -18,6 +19,7 @@
         kubeconfig: /etc/kubernetes/admin.conf
         validate_certs: no
       become: true
+      become_user: root
 
     - name: Deploy Prometheus Playbook
       kubernetes.core.k8s:
@@ -26,6 +28,7 @@
         kubeconfig: /etc/kubernetes/admin.conf
         validate_certs: no
       become: true
+      become_user: root
 
     - name: Deploy Grafana
       kubernetes.core.k8s:
@@ -34,6 +37,7 @@
         kubeconfig: /etc/kubernetes/admin.conf
         validate_certs: no
       become: true
+      become_user: root
 
     - name: Deploy Nginx Pod
       kubernetes.core.k8s:
@@ -42,3 +46,4 @@
         kubeconfig: /etc/kubernetes/admin.conf
         validate_certs: no
       become: true
+      become_user: root
