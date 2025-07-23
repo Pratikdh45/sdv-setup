@@ -2,7 +2,7 @@
   hosts: local
   become: true
   roles:
-    - python
+    # - python
     - k8s_setup
   tasks:
     - name: Deploy applications
