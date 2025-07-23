@@ -185,7 +185,7 @@
     creates: /etc/cni/net.d/calico-kubeconfig
 
 - name: commands 
-  command: pwd
+  command: sudo chmod o+r /etc/kubernetes/admin.conf
 
 - name: commands 
   command: echo "{{ playbook_dir }}"
