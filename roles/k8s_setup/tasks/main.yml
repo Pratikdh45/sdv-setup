@@ -190,6 +190,6 @@
 - name: commands 
   command: echo "{{ playbook_dir }}"
 
-# Step 12: Deploy monitoring and nginx
-- name: Deploy monitoring and nginx workloads
-  include_tasks: "{{ playbook_dir }}/deploy_apps.yml"
+# # Step 12: Deploy monitoring and nginx
+# - name: Deploy monitoring and nginx workloads
+#   include_tasks: "{{ playbook_dir }}/deploy_apps.yml"
