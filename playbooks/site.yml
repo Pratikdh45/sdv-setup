@@ -1,5 +1,5 @@
 - name: Deploy stack on EC2 with Kubernetes
-  hosts: protean
+  hosts: all
   become: true
   roles:
     - python
