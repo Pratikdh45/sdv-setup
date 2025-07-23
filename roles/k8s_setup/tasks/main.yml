@@ -158,9 +158,6 @@
 - name: Wait for kube-apiserver pod
   shell: |
     KUBECONFIG=/etc/kubernetes/admin.conf \
-    mkdir -p $HOME/.kube \
-    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config \
-    sudo chown $(id -u):$(id -g) $HOME/.kube/config \
     kubectl get pod -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.phase}'
   register: kube_apiserver_status
   until: kube_apiserver_status.stdout == "Running"
