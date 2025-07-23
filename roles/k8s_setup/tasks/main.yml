@@ -176,19 +176,79 @@
   delay: 15
   until: result.status == 200
 
+# Step 10.5: Copy admin.conf to ec2-user's .kube directory and set permissions
+- name: Ensure .kube directory exists for ec2-user
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.kube" # Use ansible_facts for home dir
+    state: directory
+    owner: "{{ ansible_user_id }}" # Set owner to the connecting user (e.g., ec2-user)
+    group: "{{ ansible_user_gid }}" # Set group to the connecting user's group
+    mode: '0755'
+  become: true # This task needs root to create directory for another user
+  become_user: root
+
+- name: Copy admin.conf to ec2-user's .kube/config
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ ansible_facts['user_dir'] }}/.kube/config" # Destination in user's home
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_gid }}"
+    mode: '0604' # Owner read/write only, secure permissions
+    remote_src: true # Source file is on the remote machine (EC2 instance itself)
+  become: true # This task needs root to read from /etc/kubernetes/admin.conf
+  become_user: root
+
 # Step 11: Apply Calico CNI
 - name: Install Calico CNI
   shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
   environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config" # Use the new path!
   args:
     creates: /etc/cni/net.d/calico-kubeconfig
+  become: true # kubectl apply often needs root (or relevant permissions)
+  become_user: root
 
-- name: commands 
-  command: sudo chmod o+r /etc/kubernetes/admin.conf
+# Step 11.1: Remove the control-plane taint
+- name: Remove control-plane taint from the node
+  shell: |
+    # Get the node name
+    NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
+    # Taint the node
+    kubectl taint nodes "$NODE_NAME" node-role.kubernetes.io/control-plane- --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config"
+  register: taint_result
+  changed_when: "'NoSchedule' in taint_result.stdout or 'NoSchedule' in taint_result.stderr"
+  environment:
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config" # Ensure kubectl uses the accessible config
+  become: true
+  become_user: root
 
-- name: commands 
-  command: echo "{{ playbook_dir }}"
+- name: Verify taint removal
+  shell: |
+    NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
+    kubectl describe node "$NODE_NAME" | grep Taints
+  register: taint_check
+  until: "'Taints: <none>' in taint_check.stdout"
+  retries: 5
+  delay: 10
+  environment:
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
+  become: true
+  become_user: root
+
+
+# # Step 11: Apply Calico CNI
+# - name: Install Calico CNI
+#   shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#   args:
+#     creates: /etc/cni/net.d/calico-kubeconfig
+
+# - name: commands 
+#   command: sudo chmod o+r /etc/kubernetes/admin.conf
+
+# - name: Where am I? 
+#   command: echo "{{ playbook_dir }}"
 
 # # Step 12: Deploy monitoring and nginx
 # - name: Deploy monitoring and nginx workloads

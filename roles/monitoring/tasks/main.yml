@@ -10,6 +10,16 @@
   become: true
   become_user: root
 
+- name: Create nginx namespace
+  kubernetes.core.k8s:
+    state: present
+    kind: Namespace
+    name: nginx
+    validate_certs: no
+    kubeconfig: /etc/kubernetes/admin.conf
+  become: true
+  become_user: root
+
 - name: Deploy Node Exporter DaemonSet
   kubernetes.core.k8s:
     # This path is correct because playbook_dir is sdv-setup/playbooks/
