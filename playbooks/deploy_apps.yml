@@ -2,47 +2,43 @@
 ---
 # deploy_apps.yml
     - name: Create monitoring namespace
-      hosts: local
-      become: true
       kubernetes.core.k8s:
         state: present
         kind: Namespace
         name: monitoring
         validate_certs: no
         kubeconfig: /etc/kubernetes/admin.conf
+      become: true
+
 
     - name: Deploy Node Exporter DaemonSet
-      hosts: local
-      become: true
       kubernetes.core.k8s:
         src: "{{ playbook_dir }}/../roles/node_exporter/node-exporter-daemonset.yml"
         state: present
         kubeconfig: /etc/kubernetes/admin.conf
         validate_certs: no
+      become: true
 
     - name: Deploy Prometheus Playbook
-      hosts: local
-      become: true
       kubernetes.core.k8s:
         src: "{{ playbook_dir }}/../roles/prometheus/prometheus-deployment.yml"
         state: present
         kubeconfig: /etc/kubernetes/admin.conf
         validate_certs: no
+      become: true
 
     - name: Deploy Grafana
-      hosts: local
-      become: true
       kubernetes.core.k8s:
         src: "{{ playbook_dir }}/../roles/grafana/grafana-deployment.yml"
         state: present
         kubeconfig: /etc/kubernetes/admin.conf
         validate_certs: no
+      become: true
 
     - name: Deploy Nginx Pod
-      hosts: local
-      become: true
       kubernetes.core.k8s:
         src: "{{ playbook_dir }}/../roles/nginx/nginx.yml"
         state: present
         kubeconfig: /etc/kubernetes/admin.conf
         validate_certs: no
+      become: true
