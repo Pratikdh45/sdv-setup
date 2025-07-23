@@ -1,0 +1,25 @@
+---
+- name: Install system dependencies
+  dnf:
+    name:
+      - python3-pip
+    state: present
+  become: true
+
+- name: Install required Python packages
+  pip:
+    name:
+      - kubernetes>=12.0.0
+      - PyYAML>=5.1
+    state: present
+  become: true
+
+- name: Verify kubernetes Python module is installed
+  shell: python3 -c "import kubernetes"
+  register: kubernetes_import
+  ignore_errors: true
+
+- name: Fail if kubernetes module is not available
+  fail:
+    msg: "The kubernetes Python module is required but not installed. Please install it first."
+  when: kubernetes_import.rc != 0

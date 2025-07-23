@@ -1,0 +1,192 @@
+# roles/k8s_setup/tasks/main.yml
+
+- name: Debug vars
+  debug:
+    var: k8s_packages
+
+# Step 0: Prerequisites
+- name: Install Kubernetes pre-requisite packages
+  dnf:
+    name:
+      - conntrack
+      - socat
+      - iproute-tc
+    state: present
+    update_cache: yes
+
+- name: Install crictl binary
+  get_url:
+    url: https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.29.0/crictl-v1.29.0-linux-amd64.tar.gz
+    dest: /tmp/crictl.tar.gz
+
+- name: Extract crictl to /usr/local/bin
+  unarchive:
+    src: /tmp/crictl.tar.gz
+    dest: /usr/local/bin/
+    remote_src: yes
+
+# Step 1: Prepare binary path
+- name: Create /usr/local/bin if not exists
+  file:
+    path: /usr/local/bin
+    state: directory
+    mode: '0755'
+
+# Step 2: Install kubeadm, kubelet, kubectl
+- name: Install kubeadm, kubelet, kubectl binaries
+  get_url:
+    url: "https://dl.k8s.io/release/{{ kube_version }}/bin/linux/amd64/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    mode: '0755'
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+
+# Step 3: kubelet systemd
+- name: Create kubelet systemd unit file
+  copy:
+    dest: /etc/systemd/system/kubelet.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=kubelet: The Kubernetes Node Agent
+      Documentation=https://kubernetes.io/docs/
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      ExecStart=/usr/local/bin/kubelet
+      Restart=always
+      StartLimitInterval=0
+      RestartSec=10
+      KillMode=process
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Ensure kubelet.service.d directory exists
+  file:
+    path: /etc/systemd/system/kubelet.service.d
+    state: directory
+    mode: '0755'
+
+- name: Create kubelet kubeadm drop-in
+  copy:
+    dest: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    content: |
+      [Service]
+      Environment="KUBELET_KUBECONFIG_ARGS=--kubeconfig=/etc/kubernetes/kubelet.conf"
+      Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml"
+      ExecStart=
+      ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS
+    mode: '0644'
+
+# Step 4: Reload systemd
+- name: Reload systemd daemon
+  command: systemctl daemon-reload
+
+- name: Re-exec systemd process
+  command: systemctl daemon-reexec
+
+# Step 5: Start kubelet
+- name: Enable and start kubelet
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
+
+# Step 6: Install Helm
+- name: Download Helm install script
+  get_url:
+    url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    dest: /tmp/get_helm.sh
+    mode: '0755'
+
+- name: Install Helm
+  shell: /tmp/get_helm.sh
+  args:
+    creates: /usr/local/bin/helm
+
+# Step 7: Docker install & start
+- name: Install Docker
+  dnf:
+    name: docker
+    state: present
+    update_cache: yes
+
+- name: Enable and start Docker
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+# Step 8: Swap off
+- name: Disable swap
+  command: swapoff -a
+
+# Step 9: kubeadm init
+- name: Initialize Kubernetes cluster
+  command: kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=all
+  register: kubeadm_init
+  changed_when: kubeadm_init.rc == 0
+
+# Step 10: Skip setting /root/.kube/config, use admin.conf directly
+
+# Step 10.1: Wait until kube-apiserver is ready before modifying
+- name: Pause before updating manifest
+  pause:
+    seconds: 30
+
+# Step 10.2: Modify kube-apiserver bind address
+- name: Get private IP
+  command: hostname -I
+  register: private_ip_raw
+
+- name: Set private_ip
+  set_fact:
+    private_ip: "{{ private_ip_raw.stdout.split()[0] }}"
+
+- name: Replace --bind-address in kube-apiserver.yaml
+  replace:
+    path: /etc/kubernetes/manifests/kube-apiserver.yaml
+    regexp: '--bind-address=127\.0\.0\.1'
+    replace: '--bind-address={{ private_ip }}'
+  notify: Restart kubelet
+
+# Step 10.3: Wait until kube-apiserver pod is Running
+- name: Wait for kube-apiserver pod
+  shell: |
+    KUBECONFIG=/etc/kubernetes/admin.conf \
+    kubectl get pod -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.phase}'
+  register: kube_apiserver_status
+  until: kube_apiserver_status.stdout == "Running"
+  retries: 20
+  delay: 15
+
+# Step 10.4: Health check over private IP
+- name: Wait for Kubernetes API server to become available
+  uri:
+    url: https://{{ private_ip }}:6443/healthz
+    method: GET
+    validate_certs: no
+    status_code: 200
+  register: result
+  retries: 20
+  delay: 15
+  until: result.status == 200
+
+# Step 11: Apply Calico CNI
+- name: Install Calico CNI
+  shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  args:
+    creates: /etc/cni/net.d/calico-kubeconfig
+
+- name: commands 
+  command: pwd && echo "{{ playbook_dir }}"
+
+# Step 12: Deploy monitoring and nginx
+- name: Deploy monitoring and nginx workloads
+  include_tasks: "{{ playbook_dir }}/deploy_apps.yml"

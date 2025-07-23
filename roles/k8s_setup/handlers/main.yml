@@ -1,0 +1,9 @@
+- name: clean yum cache
+  command: yum clean all
+
+# roles/k8s_setup/handlers/main.yml
+- name: Restart kubelet
+  ansible.builtin.systemd:
+    name: kubelet
+    state: restarted
+    enabled: yes

@@ -1,0 +1,9 @@
+- name: Deploy stack on EC2 with Kubernetes
+  hosts: protean
+  become: true
+  roles:
+    - python
+    - k8s_setup
+  tasks:
+    - name: Deploy applications
+      include_tasks: "{{ playbook_dir }}/deploy_apps.yml"

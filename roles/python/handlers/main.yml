@@ -1,0 +1,12 @@
+# # Optional: No handlers needed for this role currently
+# - name: Restart Python service
+#   service:
+#     name: python_service
+#     state: restarted
+#   when: ansible_os_family == "Debian"
+#   tags:
+#     - python
+#     - restart
+#   notify:
+#     - Restart Python service
+

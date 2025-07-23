@@ -1,0 +1,27 @@
+k8s_packages:
+  - docker
+  - kubelet
+  - kubeadm
+  - kubectl
+  - helm
+
+kube_version: v1.29.3
+
+nginx_release_name: nginx
+prometheus_release_name: prometheus
+grafana_release_name: grafana
+node_exporter_release_name: node-exporter
+
+
+prometheus_values:
+  scrape_interval: 15s
+  node_exporter_target: localhost:9100
+
+grafana_values:
+  admin_user: admin
+  admin_password: admin
+  service_type: NodePort
+  service_port: 3000
+
+node_exporter_values:
+  service_port: 9100

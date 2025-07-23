@@ -1,0 +1,57 @@
+---
+- name: Create monitoring namespace
+  kubernetes.core.k8s:
+    name: monitoring
+    api_version: v1
+    kind: Namespace
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+
+- name: Create nginx namespace
+  kubernetes.core.k8s:
+    name: nginx
+    api_version: v1
+    kind: Namespace
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+
+# Deploy Prometheus
+- name: Deploy Prometheus
+  kubernetes.core.k8s:
+    src: /home/pratikdhumane/ch-work/ansible-work/ansible-testing/roles/prometheus/prometheus-deployment.yml
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+
+# Deploy Grafana
+- name: Deploy Grafana
+  kubernetes.core.k8s:
+    src: /home/pratikdhumane/ch-work/ansible-work/ansible-testing/roles/grafana/grafana-deployment.yml
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+
+# Deploy Node Exporter
+- name: Deploy Node Exporter
+  kubernetes.core.k8s:
+    src: /home/pratikdhumane/ch-work/ansible-work/ansible-testing/roles/node_exporter/node-exporter-daemonset.yml
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+
+- name: Deploy Node Exporter Service
+  kubernetes.core.k8s:
+    src: /home/pratikdhumane/ch-work/ansible-work/ansible-testing/roles/node_exporter/node-exporter-service.yml
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+
+# Deploy Nginx
+- name: Deploy Nginx
+  kubernetes.core.k8s:
+    state: present
+    src: /home/pratikdhumane/ch-work/ansible-work/ansible-testing/roles/nginx/nginx.yml
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
