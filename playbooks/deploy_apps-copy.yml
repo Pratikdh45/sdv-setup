@@ -10,11 +10,11 @@
         kubeconfig: /etc/kubernetes/admin.conf
       become: true
 
-    - name: Create nginx namespace
+    - name: Create midware namespace
       kubernetes.core.k8s:
         state: present
         kind: Namespace
-        name: nginx
+        name: midware
         validate_certs: no
         kubeconfig: /etc/kubernetes/admin.conf
       become: true
@@ -45,10 +45,10 @@
         validate_certs: no
       become: true
 
-    - name: Deploy Nginx Pod
-      kubernetes.core.k8s:
-        src: "{{ playbook_dir }}/../roles/nginx/nginx.yml"
-        state: present
-        kubeconfig: /etc/kubernetes/admin.conf
-        validate_certs: no
-      become: true
+    # - name: Deploy Nginx Pod
+    #   kubernetes.core.k8s:
+    #     src: "{{ playbook_dir }}/../roles/nginx/nginx.yml"
+    #     state: present
+    #     kubeconfig: /etc/kubernetes/admin.conf
+    #     validate_certs: no
+    #   become: true
