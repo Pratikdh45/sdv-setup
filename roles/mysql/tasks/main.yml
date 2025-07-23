@@ -1,0 +1,46 @@
+- name: Create mysql namespace
+  kubernetes.core.k8s:
+    state: present
+    kind: Namespace
+    name: mysql
+    validate_certs: no
+    kubeconfig: /etc/kubernetes/admin.conf
+  become: true
+  become_user: root
+
+
+- name: MySql deploy and svc Playbook
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-deploy-and-svc.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
+
+- name: Deploy pv & pvc Playbook
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
+
+- name: MySql db creds
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-db-creds.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
+
+- name: Configure Mysql 
+  kubernetes.core.k8s_exec:
+    src: "{{ playbook_dir }}/../roles/mysql/templates/configure-mysql.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
