@@ -6,6 +6,7 @@
   roles:
     # - python
     - k8s_setup
-  tasks:
-    - name: Deploy applications
-      include_tasks: "{{ playbook_dir }}/deploy_apps.yml"
+    - monitoring
+  # tasks:
+  #   - name: Deploy applications
+  #     include_tasks: "{{ playbook_dir }}/deploy_apps.yml"

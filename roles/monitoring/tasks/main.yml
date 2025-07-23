@@ -1,59 +1,49 @@
 ---
-- name: Include prerequisites tasks
-  include_tasks: prerequisites.yml
-
+# This was previously deploy_apps.yml, now roles/monitoring/tasks/main.yml
 - name: Create monitoring namespace
   kubernetes.core.k8s:
     state: present
-    definition:
-      apiVersion: v1
-      kind: Namespace
-      metadata:
-        name: monitoring
-
-- name: Deploy Prometheus ConfigMap and Deployment
-  kubernetes.core.k8s:
-    state: present
-    definition: "{{ lookup('template', 'templates/prometheus-deployment.yml.j2') | from_yaml_all | select('defined') | list }}"
-  register: prometheus_deploy
-
-- name: Wait for Prometheus deployment to be ready
-  kubernetes.core.k8s_info:
-    api_version: apps/v1
-    kind: Deployment
-    name: prometheus
-    namespace: monitoring
-  register: prometheus_status
-  until: 
-    - prometheus_status.resources is defined
-    - prometheus_status.resources | length > 0
-    - prometheus_status.resources[0].status.availableReplicas is defined
-    - prometheus_status.resources[0].status.availableReplicas > 0
-  retries: 30
-  delay: 10
+    kind: Namespace
+    name: monitoring
+    validate_certs: no
+    kubeconfig: /etc/kubernetes/admin.conf
+  become: true
+  become_user: root
 
 - name: Deploy Node Exporter DaemonSet
   kubernetes.core.k8s:
+    # This path is correct because playbook_dir is sdv-setup/playbooks/
+    # ../ takes it to sdv-setup/, then /roles/ takes it to sdv-setup/roles/
+    src: "{{ playbook_dir }}/../roles/node_exporter/node-exporter-daemonset.yml"
     state: present
-    definition: "{{ lookup('template', 'templates/node-exporter-daemonset.yml.j2') | from_yaml_all | select('defined') | list }}"
-  register: node_exporter_deploy
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
 
-- name: Wait for Node Exporter DaemonSet to be ready
-  kubernetes.core.k8s_info:
-    api_version: apps/v1
-    kind: DaemonSet
-    name: node-exporter
-    namespace: monitoring
-  register: node_exporter_status
-  until: 
-    - node_exporter_status.resources is defined
-    - node_exporter_status.resources | length > 0
-    - node_exporter_status.resources[0].status.numberReady is defined
-    - node_exporter_status.resources[0].status.numberReady > 0
-  retries: 30
-  delay: 10
-
-- name: Deploy Node Exporter Service
+- name: Deploy Prometheus Playbook
   kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/prometheus/prometheus-deployment.yml"
     state: present
-    definition: "{{ lookup('template', 'templates/node-exporter-service.yml.j2') | from_yaml_all | select('defined') | list }}"
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
+
+- name: Deploy Grafana
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/grafana/grafana-deployment.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
+
+- name: Deploy Nginx Pod
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/nginx/nginx.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
