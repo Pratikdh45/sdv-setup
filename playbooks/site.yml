@@ -1,5 +1,5 @@
 - name: Deploy stack on EC2 with Kubernetes
-  hosts: all
+  hosts: localhost
   become: true
   roles:
     - python
