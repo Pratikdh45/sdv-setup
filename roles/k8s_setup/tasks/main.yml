@@ -119,52 +119,100 @@
     enabled: yes
     state: started
 
-# Step 8: Swap off
-- name: Disable swap
-  command: swapoff -a
+# --- Idempotency Checks for Kubernetes Initialization ---
+
+- name: Check if Kubernetes master configuration exists
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: k8s_config_exists
+
+- name: Debug - Kubernetes config exists check
+  debug:
+    msg: "Kubernetes admin.conf exists: {{ k8s_config_exists.stat.exists }}"
+
+# Step 8: Swap off (made idempotent)
+- name: Ensure swap is disabled (temporarily)
+  ansible.builtin.command: swapoff -a
+  when: ansible_facts['swaptotal_mb'] > 0 # Only run if swap is active
+
+- name: Ensure swap is disabled in fstab (persistently)
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^(\s*)([^#]+\s+)(\w+\s+)(\w+\s+defaults.*swap)\s*$'
+    replace: '#\1\2\3\4'
+    backup: yes
+  when: ansible_facts['swaptotal_mb'] > 0 # Only attempt if swap was active
+  notify: Reload systemd daemon # To ensure fstab changes are picked up if not rebooting
 
 # Step 9: kubeadm init
 - name: Initialize Kubernetes cluster
-  command: kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=all
-  register: kubeadm_init
-  changed_when: kubeadm_init.rc == 0
+  ansible.builtin.command: kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=all
+  register: kubeadm_init_result
+  changed_when: kubeadm_init_result.rc == 0 and "Your Kubernetes control-plane has initialized successfully!" in kubeadm_init_result.stdout
+  failed_when: kubeadm_init_result.rc != 0 and "already initialized" not in kubeadm_init_result.stderr
+  # Only run if admin.conf does NOT exist
+  when: not k8s_config_exists.stat.exists
+  # Note: The --ignore-preflight-errors=all is generally not recommended for production,
+  # but kept here as per your original request. It suppresses many warnings.
+
+# Define a variable to control execution of post-init steps
+- name: Set fact if Kubernetes was initialized or already exists
+  set_fact:
+    k8s_is_ready_or_initialized: "{{ k8s_config_exists.stat.exists or (kubeadm_init_result is defined and kubeadm_init_result.changed) }}"
+
+- name: Debug - k8s_is_ready_or_initialized
+  debug:
+    msg: "Kubernetes is ready or was initialized in this run: {{ k8s_is_ready_or_initialized }}"
+
+
+# --- Manual IP Input ---
+- name: Prompt for private IP address
+  ansible.builtin.pause:
+    prompt: "Please enter the private IP address of this machine (e.g., 10.0.0.10)"
+    echo: yes
+  register: private_ip_input
+  when: k8s_is_ready_or_initialized # Only prompt if K8s setup is relevant
+
+- name: Set private_ip from user input
+  set_fact:
+    private_ip: "{{ private_ip_input.user_input }}"
+  when: k8s_is_ready_or_initialized
+
+
 
 # Step 10: Skip setting /root/.kube/config, use admin.conf directly
 
 # Step 10.1: Wait until kube-apiserver is ready before modifying
-- name: Pause before updating manifest
-  pause:
+- name: Pause before updating manifest (only if cluster was just initialized or is already running)
+  ansible.builtin.pause:
     seconds: 30
+  when: k8s_is_ready_or_initialized
+
+
 
 # Step 10.2: Modify kube-apiserver bind address
-- name: Get private IP
-  command: hostname -I
-  register: private_ip_raw
-
-- name: Set private_ip
-  set_fact:
-    private_ip: "{{ private_ip_raw.stdout.split()[0] }}"
-
-- name: Replace --bind-address in kube-apiserver.yaml
-  replace:
+- name: Replace --bind-address in kube-apiserver.yaml (only if cluster was just initialized or is already running)
+  ansible.builtin.replace:
     path: /etc/kubernetes/manifests/kube-apiserver.yaml
     regexp: '--bind-address=127\.0\.0\.1'
     replace: '--bind-address={{ private_ip }}'
+  when: k8s_is_ready_or_initialized
   notify: Restart kubelet
 
-# Step 10.3: Wait until kube-apiserver pod is Running
+# Step 10.3: Wait until kube-apiserver pod is Running (only if cluster was just initialized or is already running)
 - name: Wait for kube-apiserver pod
-  shell: |
+  ansible.builtin.shell: |
     KUBECONFIG=/etc/kubernetes/admin.conf \
     kubectl get pod -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.phase}'
   register: kube_apiserver_status
   until: kube_apiserver_status.stdout == "Running"
   retries: 20
   delay: 15
+  when: k8s_is_ready_or_initialized
 
-# Step 10.4: Health check over private IP
+# Step 10.4: Health check over private IP (only if cluster was just initialized or is already running)
 - name: Wait for Kubernetes API server to become available
-  uri:
+  ansible.builtin.uri:
     url: https://{{ private_ip }}:6443/healthz
     method: GET
     validate_certs: no
@@ -172,10 +220,12 @@
   register: result
   retries: 20
   delay: 15
-  until: result.status == 200
+  when: k8s_is_ready_or_initialized
+
+
 
 # Step 10.5: Copy admin.conf to ec2-user's .kube directory and set permissions
-- name: Ensure .kube directory exists for ec2-user
+- name: Ensure .kube directory exists
   ansible.builtin.file:
     path: "{{ ansible_facts['user_dir'] }}/.kube" # Use ansible_facts for home dir
     state: directory
@@ -220,7 +270,7 @@
   become: true
   become_user: root
 
-- name: Verify taint removal
+- name: Verify taint removalm (e
   shell: |
     NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
     # Use grep -q to make it quiet and just check exit code.
@@ -236,24 +286,3 @@
   become_user: root
   changed_when: false # This task is only for verification, not changing state
   failed_when: taint_check.rc != 0 # Fail if grep -q didn't find the string (rc=1)
-
-
-# - name: Verify taint removal
-#   shell: |
-#     # KUBECONFIG is set in the environment below, so it's not strictly needed here,
-#     # but explicitly passing --kubeconfig is safer for nested shell commands.
-#     NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
-#     kubectl describe node "$NODE_NAME" | grep -q "Taints:\\s*<none>"
-#   register: taint_check
-#   retries: 5
-#   delay: 10
-#   environment:
-#     KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config" # <--- THIS IS KEY
-#   become: true
-#   become_user: root
-#   changed_when: false
-#   failed_when: taint_check.rc != 0
-
-# - name: commands 
-#   command: sudo chmod o+r /etc/kubernetes/admin.conf
-
