@@ -1,28 +1,30 @@
----
-# Install required system packages
-- name: Install required system packages
-  dnf:
-    name: 
-      - python3-pip
-    state: present
-  become: true
 
-# Install required Python packages
-- name: Install required Python packages
-  pip:
-    name:
-      - kubernetes
-      - openshift
-    state: present
-  become: true
 
-# Ensure target directories exist
-- name: Create manifests directory
-  file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-  with_items:
-    - /etc/kubernetes/manifests
-    - /etc/prometheus
-  become: true
+
+# # Install required system packages
+# - name: Install required system packages
+#   dnf:
+#     name: 
+#       - python3-pip
+#     state: present
+#   become: true
+
+# # Install required Python packages
+# - name: Install required Python packages
+#   pip:
+#     name:
+#       - kubernetes
+#       - openshift
+#     state: present
+#   become: true
+
+# # Ensure target directories exist
+# - name: Create manifests directory
+#   file:
+#     path: "{{ item }}"
+#     state: directory
+#     mode: '0755'
+#   with_items:
+#     - /etc/kubernetes/manifests
+#     - /etc/prometheus
+#   become: true

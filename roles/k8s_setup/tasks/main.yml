@@ -1,3 +1,7 @@
+---
+- name: Include prerequisites tasks
+  include_tasks: "{{ playbook_dir }}/roles/OSdetection/tasks/prerequisites.yml"
+
 # roles/k8s_setup/tasks/main.yml
 
 - name: Debug vars
@@ -6,13 +10,7 @@
 
 # Step 0: Prerequisites
 - name: Install Kubernetes pre-requisite packages
-  dnf:
-    name:
-      - conntrack
-      - socat
-      - iproute-tc
-    state: present
-    update_cache: yes
+  include_tasks: "{{ playbook_dir }}/roles/k8s_setup/templates/k8s-prerequisites.yml"
 
 - name: Install crictl binary
   get_url:
@@ -110,10 +108,7 @@
 
 # Step 7: Docker install & start
 - name: Install Docker
-  dnf:
-    name: docker
-    state: present
-    update_cache: yes
+  include_tasks: "{{ playbook_dir }}/roles/k8s_setup/templates/docker-install.yml"
 
 - name: Enable and start Docker
   systemd:
@@ -222,22 +217,22 @@
   become: true
   become_user: root
 
-- name: Verify taint removal
-  shell: |
-    NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
-    # Use grep -q to make it quiet and just check exit code.
-    # The regex "Taints:\s*<none>" will match "Taints:" followed by any number of spaces, then "<none>".
-    kubectl describe node "$NODE_NAME" | grep -q "Taints:\s*<none>"
-  register: taint_check
-  # No 'until' needed; the success/failure is determined by grep's exit code
-  retries: 5 # These retries are for the shell command itself, in case kubectl isn't ready immediately
-  delay: 10
-  environment:
-    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
-  become: true
-  become_user: root
-  changed_when: false # This task is only for verification, not changing state
-  failed_when: taint_check.rc != 0 # Fail if grep -q didn't find the string (rc=1)
+# - name: Verify taint removal
+#   shell: |
+#     NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
+#     # Use grep -q to make it quiet and just check exit code.
+#     # The regex "Taints:\s*<none>" will match "Taints:" followed by any number of spaces, then "<none>".
+#     kubectl describe node "$NODE_NAME" | grep -q "Taints:\s*<none>"
+#   register: taint_check
+#   # No 'until' needed; the success/failure is determined by grep's exit code
+#   retries: 5 # These retries are for the shell command itself, in case kubectl isn't ready immediately
+#   delay: 10
+#   environment:
+#     KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
+#   become: true
+#   become_user: root
+#   changed_when: false # This task is only for verification, not changing state
+#   failed_when: taint_check.rc != 0 # Fail if grep -q didn't find the string (rc=1)
 
 
 - name: Verify taint removal

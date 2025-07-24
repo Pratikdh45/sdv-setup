@@ -6,9 +6,6 @@
   roles:
     - OSdetection
     # - python
-    # - k8s_setup
-    # - monitoring
-    # - mysql
-  # tasks:
-  #   - name: Deploy applications
-  #     include_tasks: "{{ playbook_dir }}/deploy_apps.yml"
+    - k8s_setup
+    - monitoring
+    - mysql

@@ -1,0 +1,32 @@
+# Ubuntu/Debian-based systems
+- name: Install Kubernetes pre-requisite packages on apt-based systems
+  apt:
+    name:
+      - conntrack
+      - socat
+      - iproute2
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "apt"
+
+# CentOS 7 and older RHEL (yum)
+- name: Install Kubernetes pre-requisite packages on yum-based systems
+  yum:
+    name:
+      - conntrack
+      - socat
+      - iproute
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "yum"
+
+# Fedora, RHEL 8+, Rocky 8+ (dnf)
+- name: Install Kubernetes pre-requisite packages on dnf-based systems
+  dnf:
+    name:
+      - conntrack
+      - socat
+      - iproute-tc
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "dnf"

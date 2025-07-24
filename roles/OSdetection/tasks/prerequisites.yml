@@ -1,0 +1,35 @@
+---
+# Step 1: Install Kubernetes pre-requisite packages
+- name: Install pre-requisite packages on Debian/Ubuntu
+  ansible.builtin.apt:
+    name:
+      - curl
+      - apt-transport-https
+      - ca-certificates
+      - software-properties-common
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "apt"
+  become: true
+
+- name: Install pre-requisite packages on CentOS/RHEL (yum)
+  ansible.builtin.yum:
+    name:
+      - curl
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+    state: present
+  when: ansible_pkg_mgr == "yum"
+  become: true
+
+- name: Install pre-requisite packages on Fedora/RHEL (dnf)
+  ansible.builtin.dnf:
+    name:
+      - curl
+      - dnf-utils
+      - device-mapper-persistent-data
+      - lvm2
+    state: present
+  when: ansible_pkg_mgr == "dnf"
+  become: true

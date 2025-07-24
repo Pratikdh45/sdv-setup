@@ -1,0 +1,21 @@
+# Step 7: Docker install & start
+- name: Install Docker on apt-based systems
+  apt:
+    name: docker.io
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "apt"
+
+- name: Install Docker on yum-based systems
+  yum:
+    name: docker
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "yum"
+
+- name: Install Docker on dnf-based systems
+  dnf:
+    name: docker
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "dnf"
