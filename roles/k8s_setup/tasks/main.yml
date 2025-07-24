@@ -165,6 +165,15 @@
     msg: "Kubernetes is unhealthy but exists: {{ k8s_is_unhealthy_but_exists }}"
   when: k8s_config_exists.stat.exists is defined # Only debug if k8s_config_exists was run
 
+# Set a fact to explicitly check if admin.conf is absent
+- name: Set fact - admin_conf_absent
+  set_fact:
+    admin_conf_absent: "{{ not k8s_config_exists.stat.exists }}"
+
+- name: Debug - admin_conf_absent
+  debug:
+    msg: "admin_conf_absent is: {{ admin_conf_absent }}"
+
 # Step 9: kubeadm init (will run if admin.conf doesn't exist)
 - name: Initialize Kubernetes cluster
   ansible.builtin.command: kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=all
@@ -172,15 +181,15 @@
   changed_when: kubeadm_init_result.rc == 0 and "Your Kubernetes control-plane has initialized successfully!" in kubeadm_init_result.stdout
   failed_when: kubeadm_init_result.rc != 0 and "already initialized" not in kubeadm_init_result.stderr
   # Only run if admin.conf does NOT exist
-  when: not k8s_config_exists.stat.exists
-  # Note: The --ignore-preflight-errors=all is generally not recommended for production,
-  # but kept here as per your original request. It suppresses many warnings.
+  when: admin_conf_absent # Using the new explicit fact
+  become: yes # Ensure it runs with sudo
 
 # Define a variable to control execution of post-init steps
-# This task is now placed AFTER kubeadm init to ensure kubeadm_init_result is potentially defined.
 - name: Set fact if Kubernetes was initialized or already exists
   set_fact:
     k8s_is_ready_or_initialized: "{{ k8s_config_exists.stat.exists or (kubeadm_init_result is defined and 'changed' in kubeadm_init_result and kubeadm_init_result.changed) }}"
+  # IMPORTANT: This task is now placed AFTER kubeadm init to ensure kubeadm_init_result is potentially defined.
+  # The 'is defined' and 'in kubeadm_init_result' checks handle cases where kubeadm_init_result is not set (e.g., if kubeadm init was skipped).
 
 - name: Debug - k8s_is_ready_or_initialized
   debug:
@@ -203,7 +212,7 @@
   register: pull_pause_image_result
   changed_when: "'Pulled' in pull_pause_image_result.stdout or 'Image is up to date' not in pull_pause_image_result.stdout"
   # Simplified 'when' condition to ensure it runs if config exists or if it's a fresh install path
-  when: not k8s_config_exists.stat.exists or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0)
+  when: admin_conf_absent or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0)
   become: yes
 
 - name: Restart container runtime service to apply changes
@@ -212,7 +221,7 @@
     state: restarted
     daemon_reload: yes
   when:
-    - (not k8s_config_exists.stat.exists or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0))
+    - (admin_conf_absent or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0))
     - ansible_facts['service_mgr'] == 'systemd'
     - (ansible_facts['services']['docker.service'] is defined and ansible_facts['services']['docker.service']['state'] == 'running') or
       (ansible_facts['services']['containerd.service'] is defined and ansible_facts['services']['containerd.service']['state'] == 'running')
@@ -346,7 +355,7 @@
 
 
 
-  
+
 # Step 12: Grant read permission to /etc/kubernetes/admin.conf
 - name:  Grant read permission to /etc/kubernetes/admin.conf
   command: chmod o+r /etc/kubernetes/admin.conf
