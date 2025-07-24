@@ -1,4 +1,4 @@
-- name: Deploy stack on EC2 with Kubernetes
+- name: Deploy SDV stack on Kubernetes
   hosts: local
   become: true
   become_user: root
