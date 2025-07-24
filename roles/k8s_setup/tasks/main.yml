@@ -1,6 +1,6 @@
 ---
 - name: Include prerequisites tasks
-  include_tasks: "{{ playbook_dir }}/roles/OSdetection/tasks/prerequisites.yml"
+  include_tasks: "{{ playbook_dir }}/../roles/OSdetection/tasks/prerequisites.yml"
 
 # roles/k8s_setup/tasks/main.yml
 
@@ -10,7 +10,7 @@
 
 # Step 0: Prerequisites
 - name: Install Kubernetes pre-requisite packages
-  include_tasks: "{{ playbook_dir }}/roles/k8s_setup/templates/k8s-prerequisites.yml"
+  include_tasks: "{{ playbook_dir }}/../roles/k8s_setup/templates/k8s-prerequisites.yml"
 
 - name: Install crictl binary
   get_url:
@@ -108,7 +108,7 @@
 
 # Step 7: Docker install & start
 - name: Install Docker
-  include_tasks: "{{ playbook_dir }}/roles/k8s_setup/templates/docker-install.yml"
+  include_tasks: "{{ playbook_dir }}/../roles/k8s_setup/templates/docker-install.yml"
 
 - name: Enable and start Docker
   systemd:
