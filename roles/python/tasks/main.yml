@@ -32,12 +32,36 @@
       PYTHON_VER=$(python3 --version 2>&1)
       echo "Python symlink created. Python location: ${PYTHON_LOC}, Version: ${PYTHON_VER}"
     elif [ -f /usr/bin/python ]; then
-      PYTHON_LOC=$(readlink -f /usr/bin/python)
-      PYTHON_VER=$(${PYTHON_LOC} --version 2>&1)
-      echo "Python symlink already exists. Python location: ${PYTHON_LOC}, Version: ${PYTHON_VER}"
+      echo "Python symlink already exists"
     else
-      echo "Warning: /usr/bin/python3 not found. Could not create /usr/bin/python symlink."
+      echo "Python3 not found"
     fi
+
   changed_when: false # <--- Changed this to always be false to prevent the 'stdout' undefined error
   become: yes
   # check_mode: no # raw module usually bypasses check_mode, but can be added for explicit clarity
+
+
+# ✅ Add this block to fix your error
+- name: Ensure Python 'kubernetes' and 'openshift' modules are installed
+  ansible.builtin.pip:
+    name:
+      - kubernetes
+      - openshift
+    executable: pip3
+  become: yes
+
+
+
+
+
+
+#----------------------------------------------------------------
+
+    # elif [ -f /usr/bin/python ]; then
+    #   PYTHON_LOC=$(readlink -f /usr/bin/python)
+    #   PYTHON_VER=$(${PYTHON_LOC} --version 2>&1)
+    #   echo "Python symlink already exists. Python location: ${PYTHON_LOC}, Version: ${PYTHON_VER}"
+    # else
+    #   echo "Warning: /usr/bin/python3 not found. Could not create /usr/bin/python symlink."
+    # fi
