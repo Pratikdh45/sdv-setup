@@ -130,6 +130,16 @@
   debug:
     msg: "Kubernetes admin.conf exists: {{ k8s_config_exists.stat.exists }}"
 
+# Define a variable to control execution of post-init steps
+# MOVED THIS TASK UP to ensure k8s_is_ready_or_initialized is always defined before use
+- name: Set fact if Kubernetes was initialized or already exists
+  set_fact:
+    k8s_is_ready_or_initialized: "{{ k8s_config_exists.stat.exists or (kubeadm_init_result is defined and kubeadm_init_result.changed) }}"
+
+- name: Debug - k8s_is_ready_or_initialized
+  debug:
+    msg: "Kubernetes is ready or was initialized in this run: {{ k8s_is_ready_or_initialized }}"
+
 # Step 8: Swap off (made idempotent)
 - name: Ensure swap is disabled (temporarily)
   ansible.builtin.command: swapoff -a
@@ -143,9 +153,6 @@
     backup: yes
   when: ansible_facts['swaptotal_mb'] > 0 # Only attempt if swap was active
   notify: Reload systemd daemon # To ensure fstab changes are picked up if not rebooting
-
-
-
 
 # --- Health Check and Conditional Fix for Existing Cluster ---
 - name: Check Kubernetes API server health (if admin.conf exists)
@@ -182,7 +189,8 @@
     fi
   register: pull_pause_image_result
   changed_when: "'Pulled' in pull_pause_image_result.stdout or 'Image is up to date' not in pull_pause_image_result.stdout"
-  when: k8s_is_ready_or_initialized or not k8s_config_exists.stat.exists or k8s_is_unhealthy_but_exists
+  # Simplified 'when' condition to ensure it runs if config exists or if it's a fresh install path
+  when: not k8s_config_exists.stat.exists or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0) # Run if fresh, unhealthy, or healthy existing
   become: yes
 
 - name: Restart container runtime service to apply changes
@@ -191,7 +199,8 @@
     state: restarted
     daemon_reload: yes
   when:
-    - (k8s_is_ready_or_initialized or not k8s_config_exists.stat.exists or k8s_is_unhealthy_but_exists)
+    # Simplified 'when' condition to ensure it runs if config exists or if it's a fresh install path
+    - (not k8s_config_exists.stat.exists or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0))
     - ansible_facts['service_mgr'] == 'systemd'
     - (ansible_facts['services']['docker.service'] is defined and ansible_facts['services']['docker.service']['state'] == 'running') or
       (ansible_facts['services']['containerd.service'] is defined and ansible_facts['services']['containerd.service']['state'] == 'running')
@@ -217,14 +226,12 @@
   # but kept here as per your original request. It suppresses many warnings.
 
 # Define a variable to control execution of post-init steps
-- name: Set fact if Kubernetes was initialized or already exists
-  set_fact:
-    k8s_is_ready_or_initialized: "{{ k8s_config_exists.stat.exists or (kubeadm_init_result is defined and kubeadm_init_result.changed) }}"
+# This fact is now defined earlier in the playbook.
+# - name: Set fact if Kubernetes was initialized or already exists
+#   set_fact:
+#     k8s_is_ready_or_initialized: "{{ k8s_config_exists.stat.exists or (kubeadm_init_result is defined and kubeadm_init_result.changed) }}"
 
-- name: Debug - k8s_is_ready_or_initialized
-  debug:
-    msg: "Kubernetes is ready or was initialized in this run: {{ k8s_is_ready_or_initialized }}"
-
+# Debug for k8s_is_ready_or_initialized is already defined above
 
 # --- Manual IP Input ---
 - name: Prompt for private IP address
