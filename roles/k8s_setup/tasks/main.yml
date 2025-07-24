@@ -119,7 +119,7 @@
     enabled: yes
     state: started
 
-# --- Idempotency Checks for Kubernetes Initialization & Self-Healing ---
+## --- Idempotency Checks for Kubernetes Initialization & Self-Healing ---
 
 - name: Check if Kubernetes master configuration exists
   ansible.builtin.stat:
@@ -177,7 +177,7 @@
 # --- Attempt to fix container runtime issues and force API server restart ---
 # This block runs if the cluster is not healthy OR is being initialized for the first time
 - name: Pull recommended Kubernetes pause image (v3.9)
-  ansible.builtin.command: |
+  ansible.builtin.shell: | # <--- CHANGED FROM 'command' to 'shell'
     # Detect container runtime and pull image accordingly
     if command -v docker &> /dev/null; then
       sudo docker pull registry.k8s.io/pause:3.9
