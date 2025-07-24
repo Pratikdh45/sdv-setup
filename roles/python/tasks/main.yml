@@ -38,5 +38,6 @@
     else
       echo "Warning: /usr/bin/python3 not found. Could not create /usr/bin/python symlink."
     fi
-  changed_when: "'Python symlink created' in stdout"
+  changed_when: false # <--- Changed this to always be false to prevent the 'stdout' undefined error
   become: yes
+  # check_mode: no # raw module usually bypasses check_mode, but can be added for explicit clarity
