@@ -43,6 +43,14 @@
 
 
 
+- name: Ensure python3-venv is installed on Debian-based systems
+  ansible.builtin.apt:
+    name: "python3.12-venv"
+    state: present
+    update_cache: yes
+  when: ansible_facts['os_family'] == "Debian"
+  become: yes
+
 - name: Create Python virtual environment for Ansible dependencies
   ansible.builtin.command: python3 -m venv /opt/ansible_venv
   args:
@@ -60,7 +68,6 @@
 - name: Set environment to use virtualenv for future tasks
   set_fact:
     ansible_python_interpreter: /opt/ansible_venv/bin/python
-
 
 
 #----------------------------------------------------------------
