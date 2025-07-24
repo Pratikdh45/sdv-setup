@@ -217,39 +217,39 @@
   become: true
   become_user: root
 
-# - name: Verify taint removal
-#   shell: |
-#     NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
-#     # Use grep -q to make it quiet and just check exit code.
-#     # The regex "Taints:\s*<none>" will match "Taints:" followed by any number of spaces, then "<none>".
-#     kubectl describe node "$NODE_NAME" | grep -q "Taints:\s*<none>"
-#   register: taint_check
-#   # No 'until' needed; the success/failure is determined by grep's exit code
-#   retries: 5 # These retries are for the shell command itself, in case kubectl isn't ready immediately
-#   delay: 10
-#   environment:
-#     KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
-#   become: true
-#   become_user: root
-#   changed_when: false # This task is only for verification, not changing state
-#   failed_when: taint_check.rc != 0 # Fail if grep -q didn't find the string (rc=1)
-
-
 - name: Verify taint removal
   shell: |
-    # KUBECONFIG is set in the environment below, so it's not strictly needed here,
-    # but explicitly passing --kubeconfig is safer for nested shell commands.
     NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
-    kubectl describe node "$NODE_NAME" | grep -q "Taints:\\s*<none>"
+    # Use grep -q to make it quiet and just check exit code.
+    # The regex "Taints:\s*<none>" will match "Taints:" followed by any number of spaces, then "<none>".
+    kubectl describe node "$NODE_NAME" | grep -q "Taints:\s*<none>"
   register: taint_check
-  retries: 5
+  # No 'until' needed; the success/failure is determined by grep's exit code
+  retries: 5 # These retries are for the shell command itself, in case kubectl isn't ready immediately
   delay: 10
   environment:
-    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config" # <--- THIS IS KEY
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
   become: true
   become_user: root
-  changed_when: false
-  failed_when: taint_check.rc != 0
+  changed_when: false # This task is only for verification, not changing state
+  failed_when: taint_check.rc != 0 # Fail if grep -q didn't find the string (rc=1)
+
+
+# - name: Verify taint removal
+#   shell: |
+#     # KUBECONFIG is set in the environment below, so it's not strictly needed here,
+#     # but explicitly passing --kubeconfig is safer for nested shell commands.
+#     NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
+#     kubectl describe node "$NODE_NAME" | grep -q "Taints:\\s*<none>"
+#   register: taint_check
+#   retries: 5
+#   delay: 10
+#   environment:
+#     KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config" # <--- THIS IS KEY
+#   become: true
+#   become_user: root
+#   changed_when: false
+#   failed_when: taint_check.rc != 0
 
 # - name: commands 
 #   command: sudo chmod o+r /etc/kubernetes/admin.conf
