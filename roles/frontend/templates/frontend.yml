@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: midware
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: nginx:latest #### CHANGE TO YOUR IMAGE
+        ports:
+        - containerPort: 80
+        #volumeMounts:
+        #  - mountPath: /etc/timezone
+        #    name: timezone
+        #  - mountPath: /mnt/data/logs
+        #    name: middleware-logs-pv
+      #imagePullSecrets:
+      #- name: harborregcreds ### CHANGE THIS IF REQUIRED
+      #volumes:
+      #  - hostPath:
+      #      path: /etc/timezone
+      #      type: ''
+      #    name: timezone
+      #  - name: middleware-logs-pv
+      #    persistentVolumeClaim:
+      #      claimName: middleware-logs-pvc
+      #nodeSelector:
+      #  kubernetes.io/hostname: worker   ### CHANGE THIS IF REQUIRED
+--- 
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: frontend
+  name: frontend
+  namespace: midware
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+    nodePort: 31900 ### CHANGE THIS IF REQUIRED
+  selector:
+    app: frontend
+  sessionAffinity: None
+  type: NodePort
+--- 
+apiVersion: v1
+data:
+  FRONTEND_URI: http://frontend
+kind: ConfigMap
+metadata:
+  name: frontend
+  namespace: midware
+ 

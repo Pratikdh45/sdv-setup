@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: middleware
+  namespace: midware
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: middleware
+  template:
+    metadata:
+      labels:
+        app: middleware
+    spec:
+      containers:
+      - name: middleware
+        image: nginx:latest #### CHANGE TO YOUR IMAGE
+        ports:
+        - containerPort: 8000
+        # env:      #### ADD ENV VARS later
+        #volumeMounts:
+        #  - mountPath: /etc/timezone
+        #    name: timezone
+        #  - mountPath: /mnt/data/logs
+        #    name: middleware-logs-pv
+      imagePullSecrets:
+      - name: harborregcreds  ### CHANGE THIS IF REQUIRED
+      #volumes:
+      #  - hostPath:
+      #      path: /etc/timezone
+      #      type: ''
+      #    name: timezone
+      #  - name: middleware-logs-pv
+      #    persistentVolumeClaim:
+      #      claimName: middleware-logs-pvc
+      #nodeSelector:
+      #  kubernetes.io/hostname: worker  ### CHANGE THIS IF REQUIRED
+--- 
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: middleware
+  name: middleware
+  namespace: midware
+spec:
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+    nodePort: 31800     ### CHANGE THIS IF REQUIRED
+  selector:
+    app: middleware
+  sessionAffinity: None
+  type: NodePort
+--- 
+apiVersion: v1
+data:
+  MIDDLEWARE_URI: http://middleware
+kind: ConfigMap
+metadata:
+  name: middleware
+  namespace: midware
+ 
