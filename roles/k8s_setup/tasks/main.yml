@@ -258,14 +258,14 @@
     seconds: 30
   when: k8s_is_ready_or_initialized
 
-# Step 10.2: Modify kube-apiserver bind address
-- name: Replace --bind-address in kube-apiserver.yaml (only if cluster was just initialized or is already running)
-  ansible.builtin.replace:
-    path: /etc/kubernetes/manifests/kube-apiserver.yaml
-    regexp: '--bind-address=127\.0\.0\.1'
-    replace: '--bind-address={{ private_ip }}'
-  when: k8s_is_ready_or_initialized
-  notify: Restart kubelet # This notify might be redundant if the file task already triggers recreation
+# # Step 10.2: Modify kube-apiserver bind address
+# - name: Replace --bind-address in kube-apiserver.yaml (only if cluster was just initialized or is already running)
+#   ansible.builtin.replace:
+#     path: /etc/kubernetes/manifests/kube-apiserver.yaml
+#     regexp: '--bind-address=127\.0\.0\.1'
+#     replace: '--bind-address={{ private_ip }}'
+#   when: k8s_is_ready_or_initialized
+#   notify: Restart kubelet # This notify might be redundant if the file task already triggers recreation
 
 # Step 10.3: Wait until kube-apiserver pod is Running (only if cluster was just initialized or is already running)
 - name: Wait for kube-apiserver pod
