@@ -1,11 +1,42 @@
-- name: Ensure python3 is installed using raw (no Python required)
-  raw: |
-    if ! command -v python3 &> /dev/null; then
-      yum install -y python3
-    fi
+---
+- name: Debug - Display detected Operating System family and package manager
+  debug:
+    msg: "Detected OS Family: {{ ansible_facts['os_family'] }}, Package Manager: {{ ansible_facts['pkg_mgr'] }}"
 
-- name: Ensure /usr/bin/python exists (symlink to python3)
-  raw: |
+# --- Python 3 and pip installation ---
+- name: Ensure Python 3 and pip are installed on RedHat-based systems (dnf/yum)
+  ansible.builtin.package:
+    name:
+      - python3
+      - python3-pip
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+  become: yes # Required for package installation
+
+- name: Ensure Python 3 and pip are installed on Debian-based systems (apt)
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-pip
+    state: present
+    update_cache: yes # Ensure package cache is updated
+  when: ansible_facts['os_family'] == "Debian"
+  become: yes # Required for package installation
+
+
+- name: Ensure /usr/bin/python exists (symlink to python3) and report status
+  ansible.builtin.raw: |
     if [ ! -f /usr/bin/python ] && [ -f /usr/bin/python3 ]; then
-      ln -s /usr/bin/python3 /usr/bissn/python
+      ln -s /usr/bin/python3 /usr/bin/python
+      PYTHON_LOC=$(which python3)
+      PYTHON_VER=$(python3 --version 2>&1)
+      echo "Python symlink created. Python location: ${PYTHON_LOC}, Version: ${PYTHON_VER}"
+    elif [ -f /usr/bin/python ]; then
+      PYTHON_LOC=$(readlink -f /usr/bin/python)
+      PYTHON_VER=$(${PYTHON_LOC} --version 2>&1)
+      echo "Python symlink already exists. Python location: ${PYTHON_LOC}, Version: ${PYTHON_VER}"
+    else
+      echo "Warning: /usr/bin/python3 not found. Could not create /usr/bin/python symlink."
     fi
+  changed_when: "'Python symlink created' in stdout"
+  become: yes
