@@ -42,17 +42,24 @@
   # check_mode: no # raw module usually bypasses check_mode, but can be added for explicit clarity
 
 
-# ✅ Add this block to fix your error
-- name: Ensure Python 'kubernetes' and 'openshift' modules are installed
+
+- name: Create Python virtual environment for Ansible dependencies
+  ansible.builtin.command: python3 -m venv /opt/ansible_venv
+  args:
+    creates: /opt/ansible_venv/bin/activate
+  become: true
+
+- name: Install Kubernetes Python libraries in venv
   ansible.builtin.pip:
     name:
       - kubernetes
       - openshift
-    executable: pip3
-  become: yes
+    executable: /opt/ansible_venv/bin/pip
+  become: true
 
-
-
+- name: Set environment to use virtualenv for future tasks
+  set_fact:
+    ansible_python_interpreter: /opt/ansible_venv/bin/python
 
 
 
