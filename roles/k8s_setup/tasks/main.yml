@@ -267,6 +267,15 @@
 #   when: k8s_is_ready_or_initialized
 #   notify: Restart kubelet # This notify might be redundant if the file task already triggers recreation
 
+- name: Export KUBECONFIG environment variable
+  command: export KUBECONFIG=/etc/kubernetes/admin.conf
+  when: k8s_is_ready_or_initialized
+
+- name: Echo KUBECONFIG variable
+  command: echo $KUBECONFIG
+  when: k8s_is_ready_or_initialized
+
+
 # Step 10.3: Wait until kube-apiserver pod is Running (only if cluster was just initialized or is already running)
 - name: Wait for kube-apiserver pod
   ansible.builtin.shell: |
