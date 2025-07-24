@@ -1,5 +1,18 @@
-# - name: clean yum cache
-#   command: yum clean all
+
+
+# - name: Recreate kube-apiserver manifest
+#   ansible.builtin.replace:
+#     path: /etc/kubernetes/manifests/kube-apiserver.yaml
+#     regexp: '--bind-address=127\.0\.0\.1'
+#     replace: '--bind-address={{ private_ip }}'
+#   when: private_ip is defined
+#   become: yes
+#   # Add a short pause here to allow kubelet to react
+# - name: Pause after recreating kube-apiserver manifest
+#   ansible.builtin.pause:
+#     seconds: 5
+#   when: private_ip is defined
+#   become: yes
 
 # roles/k8s_setup/handlers/main.yml
 # Handlers for the k8s_setup role
@@ -15,14 +28,14 @@
     daemon_reload: yes
   become: yes
 
-- name: Recreate kube-apiserver manifest
-  ansible.builtin.replace:
-    path: /etc/kubernetes/manifests/kube-apiserver.yaml
-    regexp: '--bind-address=127\.0\.0\.1'
-    replace: '--bind-address={{ private_ip }}'
+- name: Recreate kube-apiserver manifest if missing
+  ansible.builtin.template:
+    src: kube-apiserver.yaml.j2
+    dest: /etc/kubernetes/manifests/kube-apiserver.yaml
+    mode: '0644'
   when: private_ip is defined
   become: yes
-  # Add a short pause here to allow kubelet to react
+
 - name: Pause after recreating kube-apiserver manifest
   ansible.builtin.pause:
     seconds: 5
