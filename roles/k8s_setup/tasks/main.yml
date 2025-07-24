@@ -273,7 +273,7 @@
 - name: Set KUBECONFIG environment fact
   set_fact:
     kubeconfig_env:
-      KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
+      KUBECONFIG: "/etc/kubernetes/admin.conf"
   when: k8s_is_ready_or_initialized
 
 
@@ -331,7 +331,7 @@
 - name: Install Calico CNI
   ansible.builtin.shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
   environment:
-    KUBECONFIG: "{{ kubeconfig_env }}" # Use the new path!
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"  # Use the new path!
   args:
     creates: /etc/cni/net.d/calico-kubeconfig
   become: true # kubectl apply often needs root (or relevant permissions)
@@ -347,7 +347,7 @@
   register: taint_result
   changed_when: "'NoSchedule' in taint_result.stdout or 'NoSchedule' in taint_result.stderr"
   environment:
-    KUBECONFIG: "{{ kubeconfig_env }}" # Ensure kubectl uses the accessible config
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"  # Ensure kubectl uses the accessible config
   become: true
   become_user: root
 
@@ -362,7 +362,7 @@
   retries: 5 # These retries are for the shell command itself, in case kubectl isn't ready immediately
   delay: 10
   environment:
-    KUBECONFIG: "{{ kubeconfig_env }}"
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config" 
   become: true
   become_user: root
   changed_when: false # This task is only for verification, not changing state
