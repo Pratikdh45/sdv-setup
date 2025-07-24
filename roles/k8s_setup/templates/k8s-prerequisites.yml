@@ -1,5 +1,6 @@
-# Ubuntu/Debian-based systems
-- name: Install Kubernetes pre-requisite packages on apt-based systems
+  # Step: Install Kubernetes pre-requisite packages with OS-aware logic
+
+- name: Install Kubernetes pre-requisite packages on Debian/Ubuntu
   apt:
     name:
       - conntrack
@@ -8,9 +9,9 @@
     state: present
     update_cache: yes
   when: ansible_pkg_mgr == "apt"
+  become: true
 
-# CentOS 7 and older RHEL (yum)
-- name: Install Kubernetes pre-requisite packages on yum-based systems
+- name: Install Kubernetes pre-requisite packages on CentOS/RHEL
   yum:
     name:
       - conntrack
@@ -19,9 +20,9 @@
     state: present
     update_cache: yes
   when: ansible_pkg_mgr == "yum"
+  become: true
 
-# Fedora, RHEL 8+, Rocky 8+ (dnf)
-- name: Install Kubernetes pre-requisite packages on dnf-based systems
+- name: Install Kubernetes pre-requisite packages on Fedora
   dnf:
     name:
       - conntrack
@@ -30,3 +31,20 @@
     state: present
     update_cache: yes
   when: ansible_pkg_mgr == "dnf"
+  become: true
+
+- name: Install Kubernetes pre-requisite packages on Alpine Linux
+  apk:
+    name:
+      - conntrack-tools
+      - socat
+      - iproute2
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "apk"
+  become: true
+
+- name: Fail if unsupported OS
+  fail:
+    msg: "Unsupported OS or package manager: {{ ansible_pkg_mgr }}. Please update the playbook."
+  when: ansible_pkg_mgr not in ["apt", "yum", "dnf", "apk"]

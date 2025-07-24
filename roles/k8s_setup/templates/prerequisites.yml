@@ -1,0 +1,27 @@
+- name: Install pre-requisite packages on Amazon Linux (dnf)
+  dnf:
+    name:
+      - dnf-utils
+      - device-mapper-persistent-data
+      - lvm2
+      - conntrack
+      - socat
+      - iproute-tc
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "dnf" and ansible_distribution != "Amazon"
+  become: true
+
+- name: Install pre-requisite packages on Amazon Linux (skip curl)
+  dnf:
+    name:
+      - dnf-utils
+      - device-mapper-persistent-data
+      - lvm2
+      - conntrack
+      - socat
+      - iproute-tc
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "dnf" and ansible_distribution == "Amazon"
+  become: true

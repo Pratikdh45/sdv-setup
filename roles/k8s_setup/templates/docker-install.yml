@@ -19,3 +19,9 @@
     state: present
     update_cache: yes
   when: ansible_pkg_mgr == "dnf"
+
+- name: Fail if unsupported OS
+  fail:
+    msg: "Unsupported OS or package manager: {{ ansible_pkg_mgr }}. Please update the playbook."
+  when: ansible_pkg_mgr not in ["apt", "yum", "dnf", "apk"]
+

@@ -2,6 +2,9 @@
 - name: Include prerequisites tasks
   include_tasks: "{{ playbook_dir }}/../roles/OSdetection/tasks/prerequisites.yml"
 
+- name: Install pre-requisite packages on Amazon Linux
+  include_tasks: "{{ playbook_dir }}/../roles/k8s_setup/templates/prerequisites.yml"
+
 # roles/k8s_setup/tasks/main.yml
 
 - name: Debug vars
