@@ -119,7 +119,7 @@
     enabled: yes
     state: started
 
-## --- Idempotency Checks for Kubernetes Initialization & Self-Healing ---
+# --- Idempotency Checks for Kubernetes Initialization & Self-Healing ---
 
 - name: Check if Kubernetes master configuration exists
   ansible.builtin.stat:
@@ -129,16 +129,6 @@
 - name: Debug - Kubernetes config exists check
   debug:
     msg: "Kubernetes admin.conf exists: {{ k8s_config_exists.stat.exists }}"
-
-# Define a variable to control execution of post-init steps
-# MOVED THIS TASK UP to ensure k8s_is_ready_or_initialized is always defined before use
-- name: Set fact if Kubernetes was initialized or already exists
-  set_fact:
-    k8s_is_ready_or_initialized: "{{ k8s_config_exists.stat.exists or (kubeadm_init_result is defined and kubeadm_init_result.changed) }}"
-
-- name: Debug - k8s_is_ready_or_initialized
-  debug:
-    msg: "Kubernetes is ready or was initialized in this run: {{ k8s_is_ready_or_initialized }}"
 
 # Step 8: Swap off (made idempotent)
 - name: Ensure swap is disabled (temporarily)
@@ -164,20 +154,38 @@
   changed_when: false # This is a check, not a change
   when: k8s_config_exists.stat.exists
 
+# Initialize k8s_is_unhealthy_but_exists to false by default
 - name: Set fact if Kubernetes is unhealthy but config exists
   set_fact:
     k8s_is_unhealthy_but_exists: "{{ k8s_config_exists.stat.exists and k8s_api_health_check.rc != 0 }}"
-  when: k8s_config_exists.stat.exists
+  # Removed 'when' condition to ensure it's always defined
 
 - name: Debug - Kubernetes is unhealthy but exists?
   debug:
     msg: "Kubernetes is unhealthy but exists: {{ k8s_is_unhealthy_but_exists }}"
-  when: k8s_config_exists.stat.exists
+  when: k8s_config_exists.stat.exists is defined # Only debug if k8s_config_exists was run
+
+# Initialize kubeadm_init_result to an empty dictionary if not defined
+- name: Initialize kubeadm_init_result if not defined
+  set_fact:
+    kubeadm_init_result: {}
+  when: kubeadm_init_result is not defined
+
+# Define a variable to control execution of post-init steps
+- name: Set fact if Kubernetes was initialized or already exists
+  set_fact:
+    k8s_is_ready_or_initialized: "{{ k8s_config_exists.stat.exists or (kubeadm_init_result is defined and kubeadm_init_result.changed) }}"
+  # Removed 'when' condition to ensure it's always defined
+
+- name: Debug - k8s_is_ready_or_initialized
+  debug:
+    msg: "Kubernetes is ready or was initialized in this run: {{ k8s_is_ready_or_initialized }}"
+
 
 # --- Attempt to fix container runtime issues and force API server restart ---
 # This block runs if the cluster is not healthy OR is being initialized for the first time
 - name: Pull recommended Kubernetes pause image (v3.9)
-  ansible.builtin.shell: | # <--- CHANGED FROM 'command' to 'shell'
+  ansible.builtin.shell: |
     # Detect container runtime and pull image accordingly
     if command -v docker &> /dev/null; then
       sudo docker pull registry.k8s.io/pause:3.9
@@ -190,7 +198,7 @@
   register: pull_pause_image_result
   changed_when: "'Pulled' in pull_pause_image_result.stdout or 'Image is up to date' not in pull_pause_image_result.stdout"
   # Simplified 'when' condition to ensure it runs if config exists or if it's a fresh install path
-  when: not k8s_config_exists.stat.exists or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0) # Run if fresh, unhealthy, or healthy existing
+  when: not k8s_config_exists.stat.exists or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0)
   become: yes
 
 - name: Restart container runtime service to apply changes
@@ -199,7 +207,6 @@
     state: restarted
     daemon_reload: yes
   when:
-    # Simplified 'when' condition to ensure it runs if config exists or if it's a fresh install path
     - (not k8s_config_exists.stat.exists or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0))
     - ansible_facts['service_mgr'] == 'systemd'
     - (ansible_facts['services']['docker.service'] is defined and ansible_facts['services']['docker.service']['state'] == 'running') or
