@@ -42,14 +42,14 @@
   # check_mode: no # raw module usually bypasses check_mode, but can be added for explicit clarity
 
 
-# ✅ Add this block to fix your error
-- name: Ensure Python 'kubernetes' and 'openshift' modules are installed
-  ansible.builtin.pip:
-    name:
-      - kubernetes
-      - openshift
-    executable: pip3
-  become: yes
+# # ✅ Add this block to fix your error
+# - name: Ensure Python 'kubernetes' and 'openshift' modules are installed
+#   ansible.builtin.pip:
+#     name:
+#       - kubernetes
+#       - openshift
+#     executable: pip3
+#   become: yes
 
 
 
