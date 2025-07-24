@@ -344,3 +344,7 @@
   become_user: root
   changed_when: false # This task is only for verification, not changing state
   failed_when: taint_check.rc != 0 # Fail if grep -q didn't find the string (rc=1)
+
+# Step 12: Grant read permission to /etc/kubernetes/admin.conf
+- name:  Grant read permission to /etc/kubernetes/admin.conf
+  command: chmod o+r /etc/kubernetes/admin.conf
