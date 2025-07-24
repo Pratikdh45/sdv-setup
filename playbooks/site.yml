@@ -6,6 +6,6 @@
   roles:
     - OSdetection
     - python
-    # - k8s_setup
-    # - monitoring
-    # - mysql
+    - k8s_setup
+    - monitoring
+    - mysql
