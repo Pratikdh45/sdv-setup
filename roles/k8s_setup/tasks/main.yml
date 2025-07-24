@@ -5,8 +5,6 @@
 - name: Install pre-requisite packages on Amazon Linux
   include_tasks: "{{ playbook_dir }}/../roles/k8s_setup/templates/prerequisites.yml"
 
-# roles/k8s_setup/tasks/main.yml
-
 - name: Debug vars
   debug:
     var: k8s_packages
@@ -119,6 +117,9 @@
     enabled: yes
     state: started
 
+
+
+
 # --- Idempotency Checks for Kubernetes Initialization & Self-Healing ---
 
 - name: Check if Kubernetes master configuration exists
@@ -129,6 +130,8 @@
 - name: Debug - Kubernetes config exists check
   debug:
     msg: "Kubernetes admin.conf exists: {{ k8s_config_exists.stat.exists }}"
+
+
 
 # Step 8: Swap off (made idempotent)
 - name: Ensure swap is disabled (temporarily)
@@ -144,6 +147,9 @@
   when: ansible_facts['swaptotal_mb'] > 0 # Only attempt if swap was active
   notify: Reload systemd daemon # To ensure fstab changes are picked up if not rebooting
 
+
+
+
 # --- Health Check and Conditional Fix for Existing Cluster ---
 - name: Check Kubernetes API server health (if admin.conf exists)
   ansible.builtin.shell: |
@@ -154,16 +160,18 @@
   changed_when: false # This is a check, not a change
   when: k8s_config_exists.stat.exists
 
+
 # Initialize k8s_is_unhealthy_but_exists to false by default
 - name: Set fact if Kubernetes is unhealthy but config exists
   set_fact:
     k8s_is_unhealthy_but_exists: "{{ k8s_config_exists.stat.exists and k8s_api_health_check.rc != 0 }}"
-  # Removed 'when' condition to ensure it's always defined
+
 
 - name: Debug - Kubernetes is unhealthy but exists?
   debug:
     msg: "Kubernetes is unhealthy but exists: {{ k8s_is_unhealthy_but_exists }}"
   when: k8s_config_exists.stat.exists is defined # Only debug if k8s_config_exists was run
+
 
 # Set a fact to explicitly check if admin.conf is absent
 - name: Set fact - admin_conf_absent
@@ -174,6 +182,7 @@
   debug:
     msg: "admin_conf_absent is: {{ admin_conf_absent }}"
 
+
 # Step 9: kubeadm init (will run if admin.conf doesn't exist)
 - name: Initialize Kubernetes cluster
   ansible.builtin.command: kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=all
@@ -183,6 +192,7 @@
   # Only run if admin.conf does NOT exist
   when: admin_conf_absent # Using the new explicit fact
   become: yes # Ensure it runs with sudo
+
 
 # Define a variable to control execution of post-init steps
 - name: Set fact if Kubernetes was initialized or already exists
@@ -227,13 +237,13 @@
       (ansible_facts['services']['containerd.service'] is defined and ansible_facts['services']['containerd.service']['state'] == 'running')
   become: yes
 
-- name: Force restart kube-apiserver static pod (if unhealthy but config exists)
-  ansible.builtin.file:
-    path: /etc/kubernetes/manifests/kube-apiserver.yaml
-    state: absent # Remove the manifest to force recreation
-  when: k8s_is_unhealthy_but_exists
-  become: yes
-  notify: Recreate kube-apiserver manifest # Handler to put it back after a short delay
+# - name: Force restart kube-apiserver static pod (if unhealthy but config exists)
+#   ansible.builtin.file:
+#     path: /etc/kubernetes/manifests/kube-apiserver.yaml
+#     state: absent # Remove the manifest to force recreation
+#   when: k8s_is_unhealthy_but_exists
+#   become: yes
+#   notify: Recreate kube-apiserver manifest # Handler to put it back after a short delay
 
 
 # --- Manual IP Input ---
@@ -258,14 +268,14 @@
     seconds: 30
   when: k8s_is_ready_or_initialized
 
-# # Step 10.2: Modify kube-apiserver bind address
-# - name: Replace --bind-address in kube-apiserver.yaml (only if cluster was just initialized or is already running)
-#   ansible.builtin.replace:
-#     path: /etc/kubernetes/manifests/kube-apiserver.yaml
-#     regexp: '--bind-address=127\.0\.0\.1'
-#     replace: '--bind-address={{ private_ip }}'
-#   when: k8s_is_ready_or_initialized
-#   notify: Restart kubelet # This notify might be redundant if the file task already triggers recreation
+# Step 10.2: Modify kube-apiserver bind address
+- name: Replace --bind-address in kube-apiserver.yaml (only if cluster was just initialized or is already running)
+  ansible.builtin.replace:
+    path: /etc/kubernetes/manifests/kube-apiserver.yaml
+    regexp: '--bind-address=127\.0\.0\.1'
+    replace: '--bind-address={{ private_ip }}'
+  when: k8s_is_ready_or_initialized
+  notify: Restart kubelet # This notify might be redundant if the file task already triggers recreation
 
 
 
@@ -286,7 +296,7 @@
 - name: Wait for kube-apiserver pod
   ansible.builtin.shell: |
     KUBECONFIG=/etc/kubernetes/admin.conf \
-    kubectl get pod -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.phase}'
+    sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get pod -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.phase}'
   register: kube_apiserver_status
   until: kube_apiserver_status.stdout == "Running"
   retries: 20
