@@ -1,6 +1,33 @@
-- name: Install pre-requisite packages on Amazon Linux (dnf)
-  dnf:
+# Ubuntu/Debian
+- name: Install pre-requisite packages on Debian/Ubuntu
+  ansible.builtin.apt:
     name:
+      - curl
+      - apt-transport-https
+      - ca-certificates
+      - software-properties-common
+    state: present
+    update_cache: yes
+  when: ansible_pkg_mgr == "apt"
+  become: true
+
+# CentOS/RHEL (YUM-based)
+- name: Install pre-requisite packages on CentOS/RHEL (yum)
+  ansible.builtin.yum:
+    name:
+      - curl
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+    state: present
+  when: ansible_pkg_mgr == "yum"
+  become: true
+
+# Fedora/RHEL (DNF) EXCEPT Amazon Linux
+- name: Install pre-requisite packages on Fedora/RHEL (dnf, skip Amazon)
+  ansible.builtin.dnf:
+    name:
+      - curl
       - dnf-utils
       - device-mapper-persistent-data
       - lvm2
@@ -12,8 +39,9 @@
   when: ansible_pkg_mgr == "dnf" and ansible_distribution != "Amazon"
   become: true
 
-- name: Install pre-requisite packages on Amazon Linux (skip curl)
-  dnf:
+# Amazon Linux (DNF but no curl)
+- name: Install pre-requisite packages on Amazon Linux 2023 (skip curl)
+  ansible.builtin.dnf:
     name:
       - dnf-utils
       - device-mapper-persistent-data
@@ -23,5 +51,5 @@
       - iproute-tc
     state: present
     update_cache: yes
-  when: ansible_pkg_mgr == "dnf" and ansible_distribution == "Amazon"
+  when: ansible_distribution == "Amazon"
   become: true
