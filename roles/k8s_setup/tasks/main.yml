@@ -165,17 +165,23 @@
     msg: "Kubernetes is unhealthy but exists: {{ k8s_is_unhealthy_but_exists }}"
   when: k8s_config_exists.stat.exists is defined # Only debug if k8s_config_exists was run
 
-# Initialize kubeadm_init_result to an empty dictionary if not defined
-- name: Initialize kubeadm_init_result if not defined
-  set_fact:
-    kubeadm_init_result: {}
-  when: kubeadm_init_result is not defined
+# Step 9: kubeadm init (will run if admin.conf doesn't exist)
+- name: Initialize Kubernetes cluster
+  ansible.builtin.command: kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=all
+  register: kubeadm_init_result
+  changed_when: kubeadm_init_result.rc == 0 and "Your Kubernetes control-plane has initialized successfully!" in kubeadm_init_result.stdout
+  failed_when: kubeadm_init_result.rc != 0 and "already initialized" not in kubeadm_init_result.stderr
+  # Only run if admin.conf does NOT exist
+  when: not k8s_config_exists.stat.exists
+  # Note: The --ignore-preflight-errors=all is generally not recommended for production,
+  # but kept here as per your original request. It suppresses many warnings.
 
 # Define a variable to control execution of post-init steps
 - name: Set fact if Kubernetes was initialized or already exists
   set_fact:
-    k8s_is_ready_or_initialized: "{{ k8s_config_exists.stat.exists or (kubeadm_init_result is defined and kubeadm_init_result.changed) }}"
-  # Removed 'when' condition to ensure it's always defined
+    k8s_is_ready_or_initialized: "{{ k8s_config_exists.stat.exists or (kubeadm_init_result is defined and 'changed' in kubeadm_init_result and kubeadm_init_result.changed) }}"
+  # IMPORTANT: This task is now placed AFTER kubeadm init to ensure kubeadm_init_result is potentially defined.
+  # The 'is defined' and 'in kubeadm_init_result' checks handle cases where kubeadm_init_result is not set (e.g., if kubeadm init was skipped).
 
 - name: Debug - k8s_is_ready_or_initialized
   debug:
@@ -221,24 +227,6 @@
   become: yes
   notify: Recreate kube-apiserver manifest # Handler to put it back after a short delay
 
-# Step 9: kubeadm init (will run if admin.conf doesn't exist)
-- name: Initialize Kubernetes cluster
-  ansible.builtin.command: kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=all
-  register: kubeadm_init_result
-  changed_when: kubeadm_init_result.rc == 0 and "Your Kubernetes control-plane has initialized successfully!" in kubeadm_init_result.stdout
-  failed_when: kubeadm_init_result.rc != 0 and "already initialized" not in kubeadm_init_result.stderr
-  # Only run if admin.conf does NOT exist
-  when: not k8s_config_exists.stat.exists
-  # Note: The --ignore-preflight-errors=all is generally not recommended for production,
-  # but kept here as per your original request. It suppresses many warnings.
-
-# Define a variable to control execution of post-init steps
-# This fact is now defined earlier in the playbook.
-# - name: Set fact if Kubernetes was initialized or already exists
-#   set_fact:
-#     k8s_is_ready_or_initialized: "{{ k8s_config_exists.stat.exists or (kubeadm_init_result is defined and kubeadm_init_result.changed) }}"
-
-# Debug for k8s_is_ready_or_initialized is already defined above
 
 # --- Manual IP Input ---
 - name: Prompt for private IP address
