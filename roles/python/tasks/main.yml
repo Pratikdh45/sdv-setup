@@ -9,22 +9,3 @@
     if [ ! -f /usr/bin/python ] && [ -f /usr/bin/python3 ]; then
       ln -s /usr/bin/python3 /usr/bissn/python
     fi
-
-# - name: Update apt cache
-#   yum:
-#     update_cache: yes
-
-# - name: Install Python 3
-#   yum:
-#     name: "{{ python_package }}"
-#     state: present
-#     version: "{{ python_package_version }}"
-
-# - name: Deploy python app config file
-#   template:
-#     src: config.ini.j2
-#     dest: /etc/python-app/config.ini
-#     owner: root
-#     group: root
-#     mode: '0644'
-#   notify: Restart cron

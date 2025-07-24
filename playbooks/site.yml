@@ -5,7 +5,7 @@
   gather_facts: true
   roles:
     - OSdetection
-    # - python
+    - python
     - k8s_setup
     - monitoring
     - mysql
