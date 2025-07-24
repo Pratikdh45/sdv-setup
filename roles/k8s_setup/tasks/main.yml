@@ -240,20 +240,22 @@
   failed_when: taint_check.rc != 0 # Fail if grep -q didn't find the string (rc=1)
 
 
-# # Step 11: Apply Calico CNI
-# - name: Install Calico CNI
-#   shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
-#   environment:
-#     KUBECONFIG: /etc/kubernetes/admin.conf
-#   args:
-#     creates: /etc/cni/net.d/calico-kubeconfig
+- name: Verify taint removal
+  shell: |
+    # KUBECONFIG is set in the environment below, so it's not strictly needed here,
+    # but explicitly passing --kubeconfig is safer for nested shell commands.
+    NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
+    kubectl describe node "$NODE_NAME" | grep -q "Taints:\\s*<none>"
+  register: taint_check
+  retries: 5
+  delay: 10
+  environment:
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config" # <--- THIS IS KEY
+  become: true
+  become_user: root
+  changed_when: false
+  failed_when: taint_check.rc != 0
 
 # - name: commands 
 #   command: sudo chmod o+r /etc/kubernetes/admin.conf
 
-# - name: Where am I? 
-#   command: echo "{{ playbook_dir }}"
-
-# # Step 12: Deploy monitoring and nginx
-# - name: Deploy monitoring and nginx workloads
-#   include_tasks: "{{ playbook_dir }}/deploy_apps.yml"

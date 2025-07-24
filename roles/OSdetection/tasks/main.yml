@@ -1,0 +1,9 @@
+# Step 0: Detect OS and print
+- name: Gather OS distribution info
+  ansible.builtin.setup:
+    gather_subset:
+      - "min"
+
+- name: Print OS info
+  ansible.builtin.debug:
+    msg: "Running on {{ ansible_distribution }} {{ ansible_distribution_version }} using {{ ansible_pkg_mgr }} package manager"
