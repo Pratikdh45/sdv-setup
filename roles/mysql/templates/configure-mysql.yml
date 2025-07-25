@@ -1,15 +1,25 @@
 ---
-- name: Configure MySQL Database in Kubernetes Pod
-  hosts: local
-  connection: local
-  gather_facts: false
-  become: true
-  become_user: root
+
+- name: Ensure Kubernetes Python client is installed
+  pip:
+    name: kubernetes
+    state: present
+  delegate_to: localhost
+  run_once: true
+  
+# - name: Configure MySQL Database in Kubernetes Pod
+#   # hosts: local
+#   # connection: local
+#   # gather_facts: false
+#   become: true
+#   become_user: root
 
   vars:
     # --- Kubernetes Connection Details ---
     # Ensure your kubectl is configured to connect to your K8s cluster
     # Or provide specific kubeconfig path and context if needed
+
+    
     kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config') }}"
     kube_context: "kubernetes-admin@kubernetes" # Replaced with your Kubernetes context
     namespace: "sdv" # Replace with the namespace where your MySQL pod is running
@@ -22,85 +32,79 @@
     new_user_password: "nsdl1234"
     grant_user_name: "dvuser" # User for the grant command, adjust if different from new_user_name
 
-  tasks:
-    - name: Ensure Kubernetes Python client is installed
-      pip:
-        name: kubernetes
-        state: present
-      delegate_to: localhost
-      run_once: true
+  # tasks:
+- name: Ensure Kubernetes Python client is installed
+  pip:
+    name: kubernetes
+    state: present
+  delegate_to: localhost
+  run_once: true
 
-    - name: Wait for MySQL pod to be ready and get its name
-      kubernetes.core.k8s_info:
-        api_version: v1
-        kind: Pod
-        namespace: "{{ namespace }}"
-        label_selector: "{{ mysql_app_label }}"
-        field_selector: "status.phase=Running"
-        kubeconfig: "{{ kubeconfig_path }}"
-        context: "{{ kube_context }}"
-      register: mysql_pods_info
-      until:
-        - mysql_pods_info.resources is defined
-        - mysql_pods_info.resources | length > 0
-        - mysql_pods_info.resources[0].status.phase == "Running"
-      retries: 30 # Retry for 5 minutes (30 retries * 10 seconds default delay)
-      delay: 10 # Wait 10 seconds between retries
-      # You might want to add a specific container name if your pod has multiple containers
-      # and you need to target the MySQL container explicitly.
-      # For simplicity, assuming MySQL is the primary container.
+- name: Wait for MySQL pod to be ready and get its name
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ namespace }}"
+    label_selector: "{{ mysql_app_label }}"
+    field_selector: "status.phase=Running"
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kube_context }}"
+  register: mysql_pods_info
+  until:
+    - mysql_pods_info.resources is defined
+    - mysql_pods_info.resources | length > 0
+    - mysql_pods_info.resources[0].status.phase == "Running"
+  retries: 30
+  delay: 10
 
-    - name: Set MySQL pod name fact
-      set_fact:
-        mysql_pod_name: "{{ mysql_pods_info.resources[0].metadata.name }}"
+- name: Set MySQL pod name fact
+  set_fact:
+    mysql_pod_name: "{{ mysql_pods_info.resources[0].metadata.name }}"
 
-    - name: Debug - MySQL Pod Name
-      debug:
-        msg: "Found MySQL Pod: {{ mysql_pod_name }}"
+- name: Debug - MySQL Pod Name
+  debug:
+    msg: "Found MySQL Pod: {{ mysql_pod_name }}"
 
-    - name: Create database '{{ new_database_name }}'
-      kubernetes.core.k8s_exec:
-        namespace: "{{ namespace }}"
-        pod: "{{ mysql_pod_name }}"
-        command: "mysql -uroot -p{{ mysql_root_password }} -e 'CREATE DATABASE {{ new_database_name }};'"
-        kubeconfig: "{{ kubeconfig_path }}"
-        context: "{{ kube_context }}"
+- name: Create database '{{ new_database_name }}'
+  kubernetes.core.k8s_exec:
+    namespace: "{{ namespace }}"
+    pod: "{{ mysql_pod_name }}"
+    command: "mysql -uroot -p{{ mysql_root_password }} -e 'CREATE DATABASE {{ new_database_name }};'"
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kube_context }}"
       # You might need to specify the container name if your pod has multiple containers
       # container: "mysql-container-name"
+- name: Create user '{{ new_user_name }}'
+  kubernetes.core.k8s_exec:
+    namespace: "{{ namespace }}"
+    pod: "{{ mysql_pod_name }}"
+    command: "mysql -uroot -p{{ mysql_root_password }} -e \"CREATE USER '{{ new_user_name }}'@'%' IDENTIFIED BY '{{ new_user_password }}';\""
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kube_context }}"
 
-    - name: Create user '{{ new_user_name }}'
-      kubernetes.core.k8s_exec:
-        namespace: "{{ namespace }}"
-        pod: "{{ mysql_pod_name }}"
-        command: "mysql -uroot -p{{ mysql_root_password }} -e \"CREATE USER '{{ new_user_name }}'@'%' IDENTIFIED BY '{{ new_user_password }}';\""
-        kubeconfig: "{{ kubeconfig_path }}"
-        context: "{{ kube_context }}"
+- name: Grant all privileges to '{{ grant_user_name }}'
+  kubernetes.core.k8s_exec:
+    namespace: "{{ namespace }}"
+    pod: "{{ mysql_pod_name }}"
+    command: "mysql -uroot -p{{ mysql_root_password }} -e \"GRANT ALL PRIVILEGES ON *.* TO '{{ grant_user_name }}'@'%' WITH GRANT OPTION;\""
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kube_context }}"
 
-    - name: Grant all privileges to '{{ grant_user_name }}'
-      kubernetes.core.k8s_exec:
-        namespace: "{{ namespace }}"
-        pod: "{{ mysql_pod_name }}"
-        command: "mysql -uroot -p{{ mysql_root_password }} -e \"GRANT ALL PRIVILEGES ON *.* TO '{{ grant_user_name }}'@'%' WITH GRANT OPTION;\""
-        kubeconfig: "{{ kube_config_path }}"
-        context: "{{ kube_context }}"
+- name: Flush privileges
+  kubernetes.core.k8s_exec:
+    namespace: "{{ namespace }}"
+    pod: "{{ mysql_pod_name }}"
+    command: "mysql -uroot -p{{ mysql_root_password }} -e 'FLUSH PRIVILEGES;'"
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kube_context }}"
 
-    - name: Flush privileges
-      kubernetes.core.k8s_exec:
-        namespace: "{{ namespace }}"
-        pod: "{{ mysql_pod_name }}"
-        command: "mysql -uroot -p{{ mysql_root_password }} -e 'FLUSH PRIVILEGES;'"
-        kubeconfig: "{{ kube_config_path }}"
-        context: "{{ kube_context }}"
-
-    - name: Verify database and user (optional)
-      kubernetes.core.k8s_exec:
-        namespace: "{{ namespace }}"
-        pod: "{{ mysql_pod_name }}"
-        command: "mysql -uroot -p{{ mysql_root_password }} -e 'SHOW DATABASES; SELECT user, host FROM mysql.user;'"
-        kubeconfig: "{{ kube_config_path }}"
-        context: "{{ kube_context }}"
-      register: verification_output
-      changed_when: false # This task doesn't change anything, just verifies
-      failed_when: "'{{ new_database_name }}' not in verification_output.stdout or '{{ new_user_name }}' not in verification_output.stdout"
-      # You might need more robust parsing for verification in a real scenario
-      # This is a basic check.
+- name: Verify database and user (optional)
+  kubernetes.core.k8s_exec:
+    namespace: "{{ namespace }}"
+    pod: "{{ mysql_pod_name }}"
+    command: "mysql -uroot -p{{ mysql_root_password }} -e 'SHOW DATABASES; SELECT user, host FROM mysql.user;'"
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kube_context }}"
+  register: verification_output
+  changed_when: false
+  failed_when: "'{{ new_database_name }}' not in verification_output.stdout or '{{ new_user_name }}' not in verification_output.stdout"
