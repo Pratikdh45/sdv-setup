@@ -387,8 +387,7 @@
   become_user: root
 
 # ✅ Step 11.3: Restart kube-proxy pods
-
-- name: Delete existing kube-proxy pods (first attempt, to ensure clean apply)
+- name: Delete kube-proxy pod to restart
   shell: |
     kubectl delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
   ignore_errors: yes
@@ -396,7 +395,18 @@
   become: true
   become_user: root
 
-- name: Write full kube-proxy ConfigMap YAML (Dual-Stack CIDR)
+# - name: Patch kube-proxy ConfigMap with clusterCIDR
+#   shell: |
+#     kubectl -n kube-system patch configmap kube-proxy \
+#       --type merge \
+#       -p '{"data":{"config.conf":"{\n  \"mode\": \"iptables\",\n  \"clusterCIDR\": \"192.168.0.0/16\"\n}"}}'
+#   register: patch_kube_proxy_configmap
+#   changed_when: "'configured' in patch_kube_proxy_configmap.stdout or 'patched' in patch_kube_proxy_configmap.stdout or patch_kube_proxy_configmap.rc == 0"
+#   environment: "{{ kubeconfig_env }}"
+#   become: true
+#   become_user: root
+
+- name: Write full kube-proxy ConfigMap YAML
   copy:
     dest: /tmp/kube-proxy-cm.yaml
     content: |
@@ -420,7 +430,7 @@
   become: true
   become_user: root
 
-- name: Delete kube-proxy pod again to apply updated config
+- name: Delete kube-proxy pod to restart
   shell: |
     kubectl delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
   ignore_errors: yes
@@ -433,7 +443,7 @@
     kubectl get pods -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[0].status.phase}'
   register: kube_proxy_status
   until: kube_proxy_status.stdout == "Running"
-  retries: 15
+  retries: 10
   delay: 10
   environment: "{{ kubeconfig_env }}"
   become: true
