@@ -604,7 +604,7 @@
 
 # ✅ Step 11: Apply Calico CNI
 - name: Apply Calico
-  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
   args:
     creates: /etc/cni/net.d/calico-kubeconfig
 
@@ -629,7 +629,7 @@
     state: restarted
 
 - name: Reapply Calico if needed
-  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
   when: calico_status.stdout != "Running"
 
 
