@@ -424,24 +424,35 @@
     seconds: 130
 
 # ✅ Step 11: Apply Calico CNI
-- name: Install Calico CNI
-  ansible.builtin.shell: |
-    kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+- name: Apply Calico
+  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
   args:
     creates: /etc/cni/net.d/calico-kubeconfig
-  environment: "{{ kubeconfig_env }}"
-  become: true
-  become_user: root
 
 - name: Wait for calico-node pods to be Running
   shell: |
-    kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}'
+    pods=$(kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}')
+    if [ -z "$pods" ]; then
+      echo "NotReady"
+    elif echo "$pods" | grep -qv "Running"; then
+      echo "NotReady"
+    else
+      echo "Running"
+    fi
   register: calico_status
-  until: "'Running' in calico_status.stdout"
-  retries: 10
+  until: calico_status.stdout == "Running"
+  retries: 15
   delay: 15
-  become: true
-  become_user: root
+
+- name: Restart kubelet to fix CNI plugin issues
+  systemd:
+    name: kubelet
+    state: restarted
+
+- name: Reapply Calico if needed
+  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+  when: calico_status.stdout != "Running"
+
 
 - name: Waiting for Calico CNI to be ready
   ansible.builtin.pause:
