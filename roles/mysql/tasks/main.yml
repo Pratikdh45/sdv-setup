@@ -44,11 +44,14 @@
   become: true
   become_user: root
 
-- name: Configure Mysql 
-  kubernetes.core.k8s_exec:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/configure-mysql.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+# - name: Configure Mysql 
+#   kubernetes.core.k8s_exec:
+#     src: "{{ playbook_dir }}/../roles/mysql/templates/configure-mysql.yml"
+#     state: present
+#     kubeconfig: /etc/kubernetes/admin.conf
+#     validate_certs: no
+#   become: true
+#   become_user: root
+
+- name: MySQL Configuration Logic
+  include_tasks: "{{ playbook_dir }}/../roles/mysql/templates/configure-mysql.yml"
