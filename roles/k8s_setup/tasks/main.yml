@@ -265,7 +265,7 @@
 # Step 10.1: Wait until kube-apiserver is ready before modifying
 - name: Pause before updating manifest (only if cluster was just initialized or is already running)
   ansible.builtin.pause:
-    seconds: 30
+    seconds: 150
   when: k8s_is_ready_or_initialized
 
 # Step 10.2: Modify kube-apiserver bind address
@@ -288,7 +288,7 @@
 
 
 - name: Echo KUBECONFIG variable
-  command: echo $KUBECONFIG
+  ansible.builtin.shell: echo "KUBECONFIG is set to {{ kubeconfig_env.KUBECONFIG }}"
   when: k8s_is_ready_or_initialized
 
 
@@ -296,11 +296,15 @@
 - name: Wait for kube-apiserver pod
   ansible.builtin.shell: |
     KUBECONFIG=/etc/kubernetes/admin.conf \
-    sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get pod -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.phase}'
+    kubectl get pod -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.phase}'
+    
   register: kube_apiserver_status
   until: kube_apiserver_status.stdout == "Running"
   retries: 20
   delay: 15
+  environment: "{{ kubeconfig_env }}"
+  become: true
+  become_user: root
   when: k8s_is_ready_or_initialized
 
 # Step 10.4: Health check over private IP (only if cluster was just initialized or is already running)
@@ -337,100 +341,86 @@
   become: true # This task needs root to read from /etc/kubernetes/admin.conf
   become_user: root
 
-- name: Pause Waiting for k8s to be ready
-  ansible.builtin.pause:
-    seconds: 360
-  when: k8s_is_ready_or_initialized
+# - name: Pause Waiting for k8s to be ready
+#   ansible.builtin.pause:
+#     seconds: 360
+#   when: k8s_is_ready_or_initialized
 
-# Step 11: Apply Calico CNI
+# ✅ Step 11: Apply Calico CNI
 - name: Install Calico CNI
-  ansible.builtin.shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
-  environment:
-    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
+  ansible.builtin.shell: |
+    kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
   args:
     creates: /etc/cni/net.d/calico-kubeconfig
+  environment: "{{ kubeconfig_env }}"
   become: true
   become_user: root
 
+  
+# ✅ Step 11.1: Remove control-plane taint (if exists)
 - name: Check if control-plane taint exists
   ansible.builtin.shell: |
-    kubectl describe node $(kubectl get nodes -o jsonpath='{.items[0].metadata.name}') --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config" | grep -q "node-role.kubernetes.io/control-plane:NoSchedule"
+    kubectl describe node $(kubectl get nodes -o jsonpath='{.items[0].metadata.name}') | grep -q "node-role.kubernetes.io/control-plane:NoSchedule"
   register: control_plane_taint_check
   ignore_errors: true
   changed_when: false
+  environment: "{{ kubeconfig_env }}"
   become: true
   become_user: root
 
-- name: Remove control-plane taint if it exists
-  ansible.builtin.shell: |
-    NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
-    kubectl taint nodes "$NODE_NAME" node-role.kubernetes.io/control-plane- --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config"
+- name: Remove control-plane taint
+  shell: |
+    NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
+    kubectl taint nodes "$NODE_NAME" node-role.kubernetes.io/control-plane- || true
   when: control_plane_taint_check.rc == 0
-  register: taint_result
-  changed_when: "'NoSchedule' in taint_result.stdout or 'NoSchedule' in taint_result.stderr"
-  environment:
-    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
+  environment: "{{ kubeconfig_env }}"
   become: true
   become_user: root
 
-- name: Verify taint removal
-  ansible.builtin.shell: |
-    NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
+- name: Verify control-plane taint removal
+  shell: |
+    NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
     kubectl describe node "$NODE_NAME" | grep -q "Taints:\s*<none>"
   register: taint_check
   retries: 5
   delay: 10
-  environment:
-    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
+  environment: "{{ kubeconfig_env }}"
+  failed_when: taint_check.rc != 0
+  changed_when: false
   become: true
   become_user: root
-  changed_when: false
-  failed_when: taint_check.rc != 0
 
-# ✅ Step 11.1: Ensure kube-root-ca.crt configmap for kube-proxy
+# ✅ Step 11.2: Ensure kube-root-ca.crt ConfigMap exists
 - name: Ensure kube-root-ca.crt ConfigMap exists in kube-system
-  ansible.builtin.shell: |
+  shell: |
     kubectl get configmap kube-root-ca.crt -n kube-system || \
     kubectl create configmap kube-root-ca.crt --from-file=/etc/kubernetes/pki/ca.crt -n kube-system
-  environment:
-    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
-  become: true
-  become_user: root
   register: create_root_ca_cm
   changed_when: "'created' in create_root_ca_cm.stdout"
-
-# ✅ Step 11.2: Restart kube-proxy pods
-- name: Force delete kube-proxy pod to restart with fixed configmap
-  ansible.builtin.shell: |
-    kubectl delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
-  environment:
-    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
-  ignore_errors: yes
+  environment: "{{ kubeconfig_env }}"
   become: true
   become_user: root
 
-# ✅ Step 11.3: Wait for kube-proxy to come up
-- name: Wait for kube-proxy to come up healthy
-  ansible.builtin.shell: |
+# ✅ Step 11.3: Restart kube-proxy pods
+- name: Delete kube-proxy pod to restart
+  shell: |
+    kubectl delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
+  ignore_errors: yes
+  environment: "{{ kubeconfig_env }}"
+  become: true
+  become_user: root
+
+- name: Wait for kube-proxy pod to be Running
+  shell: |
     kubectl get pods -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[0].status.phase}'
   register: kube_proxy_status
   until: kube_proxy_status.stdout == "Running"
   retries: 10
   delay: 10
-  environment:
-    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
+  environment: "{{ kubeconfig_env }}"
   become: true
   become_user: root
 
-
 # Step 12:
-- name: Export KUBECONFIG environment variable
-  command: export KUBECONFIG=/etc/kubernetes/admin.conf
-
-# Step 13:
-- name: Echo KUBECONFIG variable
-  command: echo $KUBECONFIG
-  
-# Step 14:
 - name: Grant read permission to /etc/kubernetes/admin.conf
   command: chmod o+r /etc/kubernetes/admin.conf
