@@ -335,44 +335,58 @@
     msg: "Kubernetes is ready or was initialized in this run: {{ k8s_is_ready_or_initialized }}"
 
 
-# --- Attempt to fix container runtime issues and force API server restart ---
-# This block runs if the cluster is not healthy OR is being initialized for the first time
-- name: Pull recommended Kubernetes pause image (v3.9)
-  ansible.builtin.shell: |
-    # Detect container runtime and pull image accordingly
-    if command -v docker &> /dev/null; then
-      sudo docker pull registry.k8s.io/pause:3.9
-    elif command -v crictl &> /dev/null; then
-      sudo crictl pull registry.k8s.io/pause:3.9
-    else
-      echo "No supported container runtime (docker or containerd) found to pull pause image."
-      exit 1
-    fi
-  register: pull_pause_image_result
-  changed_when: "'Pulled' in pull_pause_image_result.stdout or 'Image is up to date' not in pull_pause_image_result.stdout"
-  # Simplified 'when' condition to ensure it runs if config exists or if it's a fresh install path
-  when: admin_conf_absent or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0)
-  become: yes
 
-- name: Restart container runtime service to apply changes
-  ansible.builtin.systemd:
-    name: "{{ 'docker' if ansible_facts['service_mgr'] == 'systemd' and ansible_facts['services']['docker.service'] is defined and ansible_facts['services']['docker.service']['state'] == 'running' else 'containerd' }}"
-    state: restarted
-    daemon_reload: yes
-  when:
-    - (admin_conf_absent or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0))
-    - ansible_facts['service_mgr'] == 'systemd'
-    - (ansible_facts['services']['docker.service'] is defined and ansible_facts['services']['docker.service']['state'] == 'running') or
-      (ansible_facts['services']['containerd.service'] is defined and ansible_facts['services']['containerd.service']['state'] == 'running')
-  become: yes
 
-# - name: Force restart kube-apiserver static pod (if unhealthy but config exists)
-#   ansible.builtin.file:
-#     path: /etc/kubernetes/manifests/kube-apiserver.yaml
-#     state: absent # Remove the manifest to force recreation
-#   when: k8s_is_unhealthy_but_exists
+
+
+
+
+
+
+
+
+
+# # --- Attempt to fix container runtime issues and force API server restart ---
+# # This block runs if the cluster is not healthy OR is being initialized for the first time
+# - name: Pull recommended Kubernetes pause image (v3.9)
+#   ansible.builtin.shell: |
+#     # Detect container runtime and pull image accordingly
+#     if command -v docker &> /dev/null; then
+#       sudo docker pull registry.k8s.io/pause:3.9
+#     elif command -v crictl &> /dev/null; then
+#       sudo crictl pull registry.k8s.io/pause:3.9
+#     else
+#       echo "No supported container runtime (docker or containerd) found to pull pause image."
+#       exit 1
+#     fi
+#   register: pull_pause_image_result
+#   changed_when: "'Pulled' in pull_pause_image_result.stdout or 'Image is up to date' not in pull_pause_image_result.stdout"
+#   # Simplified 'when' condition to ensure it runs if config exists or if it's a fresh install path
+#   when: admin_conf_absent or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0)
 #   become: yes
-#   notify: Recreate kube-apiserver manifest # Handler to put it back after a short delay
+
+# - name: Restart container runtime service to apply changes
+#   ansible.builtin.systemd:
+#     name: "{{ 'docker' if ansible_facts['service_mgr'] == 'systemd' and ansible_facts['services']['docker.service'] is defined and ansible_facts['services']['docker.service']['state'] == 'running' else 'containerd' }}"
+#     state: restarted
+#     daemon_reload: yes
+#   when:
+#     - (admin_conf_absent or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0))
+#     - ansible_facts['service_mgr'] == 'systemd'
+#     - (ansible_facts['services']['docker.service'] is defined and ansible_facts['services']['docker.service']['state'] == 'running') or
+#       (ansible_facts['services']['containerd.service'] is defined and ansible_facts['services']['containerd.service']['state'] == 'running')
+#   become: yes
+
+
+
+
+
+
+
+
+
+
+
 
 
 # --- Manual IP Input ---
@@ -394,7 +408,7 @@
 # Step 10.1: Wait until kube-apiserver is ready before modifying
 - name: Pause before updating manifest (only if cluster was just initialized or is already running)
   ansible.builtin.pause:
-    seconds: 150
+    seconds: 90
   when: k8s_is_ready_or_initialized
 
 # Step 10.2: Modify kube-apiserver bind address
@@ -621,4 +635,4 @@
 
 - name: Waiting for Calico CNI to be ready
   ansible.builtin.pause:
-    seconds: 90
+    seconds: 60
