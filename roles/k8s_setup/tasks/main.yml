@@ -538,17 +538,6 @@
   become: true
   become_user: root
 
-# - name: Patch kube-proxy ConfigMap with clusterCIDR
-#   shell: |
-#     kubectl -n kube-system patch configmap kube-proxy \
-#       --type merge \
-#       -p '{"data":{"config.conf":"{\n  \"mode\": \"iptables\",\n  \"clusterCIDR\": \"192.168.0.0/16\"\n}"}}'
-#   register: patch_kube_proxy_configmap
-#   changed_when: "'configured' in patch_kube_proxy_configmap.stdout or 'patched' in patch_kube_proxy_configmap.stdout or patch_kube_proxy_configmap.rc == 0"
-#   environment: "{{ kubeconfig_env }}"
-#   become: true
-#   become_user: root
-
 - name: Write full kube-proxy ConfigMap YAML
   copy:
     dest: /tmp/kube-proxy-cm.yaml
@@ -600,15 +589,38 @@
 
 - name: Wait for Kubernetes kube-proxy pod to be ready
   ansible.builtin.pause:
-    seconds: 130
+    seconds: 60
 
-# ✅ Step 11: Apply Calico CNI
-- name: Apply Calico
-  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
+
+
+
+
+
+
+- name: Step 11.1 - Download Calico manifest locally
+  get_url:
+    url: https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
+    dest: /tmp/calico.yaml
+    mode: '0644'
+
+- name: Step 11.2 - Patch CALICO_IPV4POOL_CIDR and add CALICO_IPV6POOL_CIDR in calico.yaml
+  replace:
+    path: /tmp/calico.yaml
+    regexp: 'value: "192.168.0.0/16"'
+    replace: 'value: "192.168.0.0/16"\n        - name: CALICO_IPV6POOL_CIDR\n          value: "fd00::/64"'
+
+- name: Step 11.3 - Ensure IP autodetection method is set properly
+  replace:
+    path: /tmp/calico.yaml
+    regexp: 'name: IP_AUTODETECTION_METHOD\n\s+value: ".*"'
+    replace: 'name: IP_AUTODETECTION_METHOD\n          value: "can-reach=8.8.8.8"'
+
+- name: Step 11.4 - Apply customized Calico manifest
+  command: kubectl apply -f /tmp/calico.yaml
   args:
     creates: /etc/cni/net.d/calico-kubeconfig
 
-- name: Wait for calico-node pods to be Running
+- name: Step 11.5 - Wait for calico-node pods to be Running
   shell: |
     pods=$(kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}')
     if [ -z "$pods" ]; then
@@ -623,16 +635,54 @@
   retries: 15
   delay: 15
 
-- name: Restart kubelet to fix CNI plugin issues
+- name: Step 11.6 - Restart kubelet to fix CNI plugin issues
   systemd:
     name: kubelet
     state: restarted
 
-- name: Reapply Calico if needed
-  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
+- name: Step 11.7 - Reapply Calico if needed
+  command: kubectl apply -f /tmp/calico.yaml
   when: calico_status.stdout != "Running"
 
-
-- name: Waiting for Calico CNI to be ready
+- name: Step 11.8 - Pause to allow Calico to stabilize
   ansible.builtin.pause:
     seconds: 60
+
+
+
+
+
+
+
+
+
+
+# # ✅ Step 11: Apply Calico CNI
+# - name: Apply Calico
+#   command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
+#   args:
+#     creates: /etc/cni/net.d/calico-kubeconfig
+
+# - name: Wait for calico-node pods to be Running
+#   shell: |
+#     pods=$(kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}')
+#     if [ -z "$pods" ]; then
+#       echo "NotReady"
+#     elif echo "$pods" | grep -qv "Running"; then
+#       echo "NotReady"
+#     else
+#       echo "Running"
+#     fi
+#   register: calico_status
+#   until: calico_status.stdout == "Running"
+#   retries: 15
+#   delay: 15
+
+# - name: Restart kubelet to fix CNI plugin issues
+#   systemd:
+#     name: kubelet
+#     state: restarted
+
+# - name: Reapply Calico if needed
+#   command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
+#   when: calico_status.stdout != "Running"
