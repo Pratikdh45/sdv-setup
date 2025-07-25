@@ -113,6 +113,17 @@ sudo rm -rf /var/run/docker.sock || true # Docker socket
 echo "Removing Containerd data directories (use with caution if you have other containers managed by containerd)..."
 sudo rm -rf /var/lib/containerd || true # For Containerd
 
+
+
+sudo rm -rf /usr/local/bin/python3.12
+sudo rm -rf /usr/local/lib/python3.12
+sudo rm -rf /usr/local/include/python3.12
+sudo rm -rf /usr/local/share/man/man1/python3.12.1
+
+#Also remove source files if you built from /usr/src/Python-3.12.x
+sudo rm -rf /usr/src/Python-3.12.*
+
+
 # --- Additions end here ---
 
 echo "Kubernetes cleanup complete."

@@ -1,6 +1,24 @@
 ---
+# Step 8: Swap off (made idempotent)
+- name: Ensure swap is disabled (temporarily)
+  ansible.builtin.command: swapoff -a
+  when: ansible_facts['swaptotal_mb'] > 0 # Only run if swap is active
+
+- name: Ensure swap is disabled in fstab (persistently)
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^(\s*)([^#]+\s+)(\w+\s+)(\w+\s+defaults.*swap)\s*$'
+    replace: '#\1\2\3\4'
+    backup: yes
+  when: ansible_facts['swaptotal_mb'] > 0 # Only attempt if swap was active
+  notify: Reload systemd daemon # To ensure fstab changes are picked up if not rebooting
 - name: Include prerequisites tasks
   include_tasks: "{{ playbook_dir }}/../roles/OSdetection/tasks/prerequisites.yml"
+
+
+
+
+
 
 - name: Install pre-requisite packages on Amazon Linux
   include_tasks: "{{ playbook_dir }}/../roles/k8s_setup/templates/prerequisites.yml"
@@ -24,6 +42,116 @@
     dest: /usr/local/bin/
     remote_src: yes
 
+
+
+- name: Create an empty file for the containerd module
+  copy:
+        content: ""
+        dest: /etc/modules-load.d/containerd.conf
+        force: no
+
+- name: Configure modules for containerd
+  blockinfile:
+        path: /etc/modules-load.d/containerd.conf
+        block: |
+          overlay
+          br_netfilter
+
+- name: Create an empty file for K8S sysctl parameters
+  copy:
+        content: ""
+        dest: /etc/sysctl.d/99-kubernetes-cri.conf
+        force: no
+
+- name: Configure sysctl parameters for K8S
+  lineinfile:
+        path: /etc/sysctl.d/99-kubernetes-cri.conf
+        line: "{{ item }}"
+  with_items:
+        - "net.bridge.bridge-nf-call-iptables  = 1"
+        - "net.ipv4.ip_forward                 = 1"
+        - "net.bridge.bridge-nf-call-ip6tables = 1"
+
+- name: Apply sysctl parameters
+  command: sysctl --system
+
+- name: Install APT Transport HTTPS
+  apt:
+        name: apt-transport-https
+        state: present
+
+- name: Add Docker apt-key
+  get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker-apt-keyring.asc
+        mode: "0644"
+        force: true
+
+- name: Add Docker's APT repo
+  apt_repository:
+        repo: "deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }} signed-by=/etc/apt/keyrings/docker-apt-keyring.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        update_cache: yes
+
+- name: Add Kubernetes apt-key
+  get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+        mode: "0644"
+        force: true
+
+- name: Add Kubernetes APT repository
+  apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /"
+        state: present
+        update_cache: yes
+
+- name: Install containerd
+  apt:
+        name: containerd.io
+        state: present
+
+- name: Create containerd directory
+  file:
+        path: /etc/containerd
+        state: directory
+
+- name: Add containerd configuration
+  shell: /usr/bin/containerd config default > /etc/containerd/config.toml
+
+- name: Configuring Systemd cgroup driver for containerd
+  lineinfile:
+        path: /etc/containerd/config.toml
+        regexp: "            SystemdCgroup = false"
+        line: "            SystemdCgroup = true"
+
+- name: Enable the containerd service and start service
+  systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+        daemon-reload: yes
+
+- name: Load br_netfilter kernel module
+  modprobe:
+        name: br_netfilter
+        state: present
+
+- name: Set bridge-nf-call-iptables
+  sysctl:
+        name: net.bridge.bridge-nf-call-iptables
+        value: 1
+
+- name: Set ip_forward
+  sysctl:
+        name: net.ipv4.ip_forward
+        value: 1
+
+
+
+
+
+
 # Step 1: Prepare binary path
 - name: Create /usr/local/bin if not exists
   file:
@@ -38,8 +166,8 @@
     dest: "/usr/local/bin/{{ item }}"
     mode: '0755'
   loop:
-    - kubelet
-    - kubeadm
+    - kubelet=1.29.*
+    - kubeadm=1.29.*
     - kubectl
 
 # Step 3: kubelet systemd
@@ -95,17 +223,20 @@
     enabled: yes
     state: started
 
-# Step 6: Install Helm
-- name: Download Helm install script
-  get_url:
-    url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-    dest: /tmp/get_helm.sh
-    mode: '0755'
+# # Step 6: Install Helm
+# - name: Download Helm install script
+#   get_url:
+#     url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+#     dest: /tmp/get_helm.sh
+#     mode: '0755'
 
-- name: Install Helm
-  shell: /tmp/get_helm.sh
-  args:
-    creates: /usr/local/bin/helm
+# - name: Install Helm
+#   shell: /tmp/get_helm.sh
+#   args:
+#     creates: /usr/local/bin/helm
+
+
+
 
 # Step 7: Docker install & start
 - name: Install Docker
@@ -119,6 +250,21 @@
 
 
 
+- name: Load br_netfilter kernel module
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Set bridge-nf-call-iptables
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: 1
+
+- name: Set ip_forward
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: 1
+
 
 # --- Idempotency Checks for Kubernetes Initialization & Self-Healing ---
 
@@ -130,23 +276,6 @@
 - name: Debug - Kubernetes config exists check
   debug:
     msg: "Kubernetes admin.conf exists: {{ k8s_config_exists.stat.exists }}"
-
-
-
-# Step 8: Swap off (made idempotent)
-- name: Ensure swap is disabled (temporarily)
-  ansible.builtin.command: swapoff -a
-  when: ansible_facts['swaptotal_mb'] > 0 # Only run if swap is active
-
-- name: Ensure swap is disabled in fstab (persistently)
-  ansible.builtin.replace:
-    path: /etc/fstab
-    regexp: '^(\s*)([^#]+\s+)(\w+\s+)(\w+\s+defaults.*swap)\s*$'
-    replace: '#\1\2\3\4'
-    backup: yes
-  when: ansible_facts['swaptotal_mb'] > 0 # Only attempt if swap was active
-  notify: Reload systemd daemon # To ensure fstab changes are picked up if not rebooting
-
 
 
 
@@ -455,41 +584,41 @@
 - name: Grant read permission to /etc/kubernetes/admin.conf
   command: chmod o+r /etc/kubernetes/admin.conf
 
-# - name: Wait for Kubernetes kube-proxy pod to be ready
-#   ansible.builtin.pause:
-#     seconds: 130
+- name: Wait for Kubernetes kube-proxy pod to be ready
+  ansible.builtin.pause:
+    seconds: 130
 
-# # ✅ Step 11: Apply Calico CNI
-# - name: Apply Calico
-#   command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
-#   args:
-#     creates: /etc/cni/net.d/calico-kubeconfig
+# ✅ Step 11: Apply Calico CNI
+- name: Apply Calico
+  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+  args:
+    creates: /etc/cni/net.d/calico-kubeconfig
 
-# - name: Wait for calico-node pods to be Running
-#   shell: |
-#     pods=$(kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}')
-#     if [ -z "$pods" ]; then
-#       echo "NotReady"
-#     elif echo "$pods" | grep -qv "Running"; then
-#       echo "NotReady"
-#     else
-#       echo "Running"
-#     fi
-#   register: calico_status
-#   until: calico_status.stdout == "Running"
-#   retries: 15
-#   delay: 15
+- name: Wait for calico-node pods to be Running
+  shell: |
+    pods=$(kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}')
+    if [ -z "$pods" ]; then
+      echo "NotReady"
+    elif echo "$pods" | grep -qv "Running"; then
+      echo "NotReady"
+    else
+      echo "Running"
+    fi
+  register: calico_status
+  until: calico_status.stdout == "Running"
+  retries: 15
+  delay: 15
 
-# - name: Restart kubelet to fix CNI plugin issues
-#   systemd:
-#     name: kubelet
-#     state: restarted
+- name: Restart kubelet to fix CNI plugin issues
+  systemd:
+    name: kubelet
+    state: restarted
 
-# - name: Reapply Calico if needed
-#   command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
-#   when: calico_status.stdout != "Running"
+- name: Reapply Calico if needed
+  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+  when: calico_status.stdout != "Running"
 
 
-# - name: Waiting for Calico CNI to be ready
-#   ansible.builtin.pause:
-#     seconds: 90
+- name: Waiting for Calico CNI to be ready
+  ansible.builtin.pause:
+    seconds: 90
