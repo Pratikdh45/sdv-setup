@@ -5,9 +5,7 @@ k8s_packages:
   - kubectl
   - helm
 
-kube_version: v1.29.*
-containerd_version: 1.6.24-1
-kubeadm_version: v1.29.*
+kube_version: v1.29.0
 
 nginx_release_name: nginx
 prometheus_release_name: prometheus
