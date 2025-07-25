@@ -1,57 +1,49 @@
-- name: Create sdv namespace
-  kubernetes.core.k8s:
-    state: present
-    kind: Namespace
-    name: sdv
-    validate_certs: no
-    kubeconfig: /etc/kubernetes/admin.conf
+---
+
+- name: MySQL Setup Playbook
+  hosts: localhost
   become: true
   become_user: root
+  gather_facts: false
+  vars:
+    kubeconfig_path: "/etc/kubernetes/admin.conf"
 
-- name: Deploy storage class
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/storageclass.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+  tasks:
+    - name: Create sdv namespace
+      kubernetes.core.k8s:
+        state: present
+        kind: Namespace
+        name: sdv
+        validate_certs: no
+        kubeconfig: "{{ kubeconfig_path }}"
 
-- name: Deploy pv & pvc Playbook
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+    - name: Deploy storage class
+      kubernetes.core.k8s:
+        src: "{{ playbook_dir }}/../roles/mysql/templates/storageclass.yml"
+        state: present
+        kubeconfig: "{{ kubeconfig_path }}"
+        validate_certs: no
 
-- name: MySql deploy and svc Playbook
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-deploy-and-svc.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+    - name: Deploy PV & PVC
+      kubernetes.core.k8s:
+        src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml"
+        state: present
+        kubeconfig: "{{ kubeconfig_path }}"
+        validate_certs: no
 
-- name: MySql db creds
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-db-secret.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+    - name: Deploy MySQL Deployment and Service
+      kubernetes.core.k8s:
+        src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-deploy-and-svc.yml"
+        state: present
+        kubeconfig: "{{ kubeconfig_path }}"
+        validate_certs: no
 
-# - name: Configure Mysql 
-#   kubernetes.core.k8s_exec:
-#     src: "{{ playbook_dir }}/../roles/mysql/templates/configure-mysql.yml"
-#     state: present
-#     kubeconfig: /etc/kubernetes/admin.conf
-#     validate_certs: no
-#   become: true
-#   become_user: root
+    - name: Deploy MySQL DB credentials secret
+      kubernetes.core.k8s:
+        src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-db-secret.yml"
+        state: present
+        kubeconfig: "{{ kubeconfig_path }}"
+        validate_certs: no
 
-- name: MySQL Configuration Logic
-  include_tasks: "{{ playbook_dir }}/../roles/mysql/templates/configure-mysql.yml"
+    - name: Run MySQL Configuration Logic
+      include_tasks: "{{ playbook_dir }}/../roles/mysql/tasks/configure-mysql.yml"
