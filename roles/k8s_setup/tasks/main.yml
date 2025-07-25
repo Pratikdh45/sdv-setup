@@ -166,8 +166,8 @@
     dest: "/usr/local/bin/{{ item }}"
     mode: '0755'
   loop:
-    - kubelet=1.29.*
-    - kubeadm=1.29.*
+    - kubelet
+    - kubeadm
     - kubectl
 
 # Step 3: kubelet systemd
