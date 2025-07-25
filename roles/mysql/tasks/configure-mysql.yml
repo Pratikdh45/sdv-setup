@@ -1,5 +1,4 @@
 ---
-
 - name: Ensure Kubernetes Python client is installed
   pip:
     name: kubernetes
@@ -7,23 +6,11 @@
   delegate_to: localhost
   run_once: true
 
-- name: Set MySQL configuration variables
-  set_fact:
-    kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config', true) }}"
-    kube_context: "kubernetes-admin@kubernetes"
-    namespace: "sdv"
-    mysql_app_label: "app=mysql"
-    mysql_root_password: "Pa$$W0Rd654#"
-    new_database_name: "data_vault"
-    new_user_name: "dvuser"
-    new_user_password: "nsdl1234"
-    grant_user_name: "dvuser"
-
 - name: Wait for MySQL pod to be ready and get its name
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Pod
-    namespace: "{{ namespace }}"
+    namespace: "{{ sdv_namespace }}"
     label_selector: "{{ mysql_app_label }}"
     field_selector: "status.phase=Running"
     kubeconfig: "{{ kubeconfig_path }}"
@@ -40,13 +27,9 @@
   set_fact:
     mysql_pod_name: "{{ mysql_pods_info.resources[0].metadata.name }}"
 
-- name: Debug - MySQL Pod Name
-  debug:
-    msg: "Found MySQL Pod: {{ mysql_pod_name }}"
-
 - name: Create database '{{ new_database_name }}'
   kubernetes.core.k8s_exec:
-    namespace: "{{ namespace }}"
+    namespace: "{{ sdv_namespace }}"
     pod: "{{ mysql_pod_name }}"
     command: >
       mysql -uroot -p{{ mysql_root_password }} -e "CREATE DATABASE IF NOT EXISTS {{ new_database_name }};"
@@ -55,16 +38,16 @@
 
 - name: Create user '{{ new_user_name }}'
   kubernetes.core.k8s_exec:
-    namespace: "{{ namespace }}"
+    namespace: "{{ sdv_namespace }}"
     pod: "{{ mysql_pod_name }}"
     command: >
       mysql -uroot -p{{ mysql_root_password }} -e "CREATE USER IF NOT EXISTS '{{ new_user_name }}'@'%' IDENTIFIED BY '{{ new_user_password }}';"
     kubeconfig: "{{ kubeconfig_path }}"
     context: "{{ kube_context }}"
 
-- name: Grant all privileges to '{{ grant_user_name }}'
+- name: Grant privileges
   kubernetes.core.k8s_exec:
-    namespace: "{{ namespace }}"
+    namespace: "{{ sdv_namespace }}"
     pod: "{{ mysql_pod_name }}"
     command: >
       mysql -uroot -p{{ mysql_root_password }} -e "GRANT ALL PRIVILEGES ON *.* TO '{{ grant_user_name }}'@'%' WITH GRANT OPTION;"
@@ -73,16 +56,16 @@
 
 - name: Flush privileges
   kubernetes.core.k8s_exec:
-    namespace: "{{ namespace }}"
+    namespace: "{{ sdv_namespace }}"
     pod: "{{ mysql_pod_name }}"
     command: >
       mysql -uroot -p{{ mysql_root_password }} -e "FLUSH PRIVILEGES;"
     kubeconfig: "{{ kubeconfig_path }}"
     context: "{{ kube_context }}"
 
-- name: Verify database and user
+- name: Verify database and user (optional)
   kubernetes.core.k8s_exec:
-    namespace: "{{ namespace }}"
+    namespace: "{{ sdv_namespace }}"
     pod: "{{ mysql_pod_name }}"
     command: >
       mysql -uroot -p{{ mysql_root_password }} -e "SHOW DATABASES; SELECT user, host FROM mysql.user;"

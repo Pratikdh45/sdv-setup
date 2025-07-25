@@ -1,19 +1,20 @@
 ---
-
 - name: MySQL Setup Playbook
   hosts: localhost
   become: true
   become_user: root
   gather_facts: false
-  vars:
-    kubeconfig_path: "/etc/kubernetes/admin.conf"
+  vars_files:
+    - ../group_vars/all.yml
+
+
 
   tasks:
     - name: Create sdv namespace
       kubernetes.core.k8s:
         state: present
         kind: Namespace
-        name: sdv
+        name: "{{ namespace }}"
         validate_certs: no
         kubeconfig: "{{ kubeconfig_path }}"
 

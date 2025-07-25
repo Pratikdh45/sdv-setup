@@ -26,15 +26,12 @@ grafana_values:
 node_exporter_values:
   service_port: 9100
 
-
-kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config') }}"
-kube_context: "kubernetes-admin@kubernetes" # Replaced with your Kubernetes context
-namespace: "sdv" # Replace with the namespace where your MySQL pod is running
-mysql_app_label: "app=mysql" # Label to identify your MySQL pod (e.g., from your deployment)
-
-    # --- MySQL Database Details ---
-mysql_root_password: "Pa$$W0Rd654#" # IMPORTANT: Replace with your actual MySQL root password
+sdv_namespace: sdv
+kubeconfig_path: /etc/kubernetes/admin.conf
+kube_context: "kubernetes-admin@kubernetes"
+mysql_app_label: "app=mysql"
+mysql_root_password: "Pa$$W0Rd654#"
 new_database_name: "data_vault"
 new_user_name: "dvuser"
 new_user_password: "nsdl1234"
-grant_user_name: "dvuser" # User for the grant command, adjust if different from new_user_name
+grant_user_name: "dvuser"
