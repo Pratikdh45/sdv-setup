@@ -386,7 +386,7 @@
   become: true
   become_user: root
 
-# ✅ Step 11.3: Restart kube-proxy pods
+# ✅ Step 11.3: Restart kube-proxy pods [First one ensures the pod doesn’t run on an incomplete/old config during apply.]
 - name: Delete kube-proxy pod to restart
   shell: |
     kubectl delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
@@ -430,6 +430,8 @@
   become: true
   become_user: root
 
+
+    #Second ensures the pod reloads the new ConfigMap.
 - name: Delete kube-proxy pod to restart
   shell: |
     kubectl delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
@@ -453,41 +455,41 @@
 - name: Grant read permission to /etc/kubernetes/admin.conf
   command: chmod o+r /etc/kubernetes/admin.conf
 
-- name: Wait for Kubernetes kube-proxy pod to be ready
-  ansible.builtin.pause:
-    seconds: 130
+# - name: Wait for Kubernetes kube-proxy pod to be ready
+#   ansible.builtin.pause:
+#     seconds: 130
 
-# ✅ Step 11: Apply Calico CNI
-- name: Apply Calico
-  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
-  args:
-    creates: /etc/cni/net.d/calico-kubeconfig
+# # ✅ Step 11: Apply Calico CNI
+# - name: Apply Calico
+#   command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+#   args:
+#     creates: /etc/cni/net.d/calico-kubeconfig
 
-- name: Wait for calico-node pods to be Running
-  shell: |
-    pods=$(kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}')
-    if [ -z "$pods" ]; then
-      echo "NotReady"
-    elif echo "$pods" | grep -qv "Running"; then
-      echo "NotReady"
-    else
-      echo "Running"
-    fi
-  register: calico_status
-  until: calico_status.stdout == "Running"
-  retries: 15
-  delay: 15
+# - name: Wait for calico-node pods to be Running
+#   shell: |
+#     pods=$(kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}')
+#     if [ -z "$pods" ]; then
+#       echo "NotReady"
+#     elif echo "$pods" | grep -qv "Running"; then
+#       echo "NotReady"
+#     else
+#       echo "Running"
+#     fi
+#   register: calico_status
+#   until: calico_status.stdout == "Running"
+#   retries: 15
+#   delay: 15
 
-- name: Restart kubelet to fix CNI plugin issues
-  systemd:
-    name: kubelet
-    state: restarted
+# - name: Restart kubelet to fix CNI plugin issues
+#   systemd:
+#     name: kubelet
+#     state: restarted
 
-- name: Reapply Calico if needed
-  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
-  when: calico_status.stdout != "Running"
+# - name: Reapply Calico if needed
+#   command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+#   when: calico_status.stdout != "Running"
 
 
-- name: Waiting for Calico CNI to be ready
-  ansible.builtin.pause:
-    seconds: 90
+# - name: Waiting for Calico CNI to be ready
+#   ansible.builtin.pause:
+#     seconds: 90
