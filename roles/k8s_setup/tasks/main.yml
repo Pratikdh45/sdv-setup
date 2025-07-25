@@ -387,7 +387,8 @@
   become_user: root
 
 # ✅ Step 11.3: Restart kube-proxy pods
-- name: Delete kube-proxy pod to restart
+
+- name: Delete existing kube-proxy pods (first attempt, to ensure clean apply)
   shell: |
     kubectl delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
   ignore_errors: yes
@@ -395,18 +396,7 @@
   become: true
   become_user: root
 
-# - name: Patch kube-proxy ConfigMap with clusterCIDR
-#   shell: |
-#     kubectl -n kube-system patch configmap kube-proxy \
-#       --type merge \
-#       -p '{"data":{"config.conf":"{\n  \"mode\": \"iptables\",\n  \"clusterCIDR\": \"192.168.0.0/16\"\n}"}}'
-#   register: patch_kube_proxy_configmap
-#   changed_when: "'configured' in patch_kube_proxy_configmap.stdout or 'patched' in patch_kube_proxy_configmap.stdout or patch_kube_proxy_configmap.rc == 0"
-#   environment: "{{ kubeconfig_env }}"
-#   become: true
-#   become_user: root
-
-- name: Write full kube-proxy ConfigMap YAML
+- name: Write full kube-proxy ConfigMap YAML (Dual-Stack CIDR)
   copy:
     dest: /tmp/kube-proxy-cm.yaml
     content: |
@@ -420,7 +410,7 @@
           apiVersion: kubeproxy.config.k8s.io/v1alpha1
           kind: KubeProxyConfiguration
           mode: "iptables"
-          clusterCIDR: "192.168.0.0/16"
+          clusterCIDR: "192.168.0.0/16,fd00::/64"
 
 - name: Apply kube-proxy ConfigMap
   command: kubectl apply -f /tmp/kube-proxy-cm.yaml
@@ -430,24 +420,22 @@
   become: true
   become_user: root
 
+- name: Delete kube-proxy pod again to apply updated config
+  shell: |
+    kubectl delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
+  ignore_errors: yes
+  environment: "{{ kubeconfig_env }}"
+  become: true
+  become_user: root
 
 - name: Wait for kube-proxy pod to be Running
   shell: |
     kubectl get pods -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[0].status.phase}'
   register: kube_proxy_status
   until: kube_proxy_status.stdout == "Running"
-  retries: 10
+  retries: 15
   delay: 10
   environment: "{{ kubeconfig_env }}"
-  become: true
-  become_user: root
-
-- name: Wait for kube-proxy to be running
-  command: kubectl get pods -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[0].status.phase}'
-  register: proxy_status
-  until: proxy_status.stdout == "Running"
-  retries: 20
-  delay: 10
   become: true
   become_user: root
 
