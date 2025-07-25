@@ -397,15 +397,15 @@
 
 - name: Patch kube-proxy ConfigMap with clusterCIDR
   shell: |
-    kubectl -n kube-system get configmap kube-proxy -o yaml | \
-    sed 's|mode: ""|mode: "iptables"|' | \
-    sed '/clusterCIDR:/! s|config:|config:\n  clusterCIDR: "192.168.0.0/16"|' > /tmp/kube-proxy-patched.yaml && \
-    kubectl -n kube-system apply -f /tmp/kube-proxy-patched.yaml
+    kubectl -n kube-system patch configmap kube-proxy \
+      --type merge \
+      -p '{"data":{"config.conf":"{\n  \"mode\": \"iptables\",\n  \"clusterCIDR\": \"192.168.0.0/16\"\n}"}}'
   register: patch_kube_proxy_configmap
-  changed_when: "'configured' in patch_kube_proxy_configmap.stdout or 'configured' in patch_kube_proxy_configmap.stderr"
+  changed_when: "'configured' in patch_kube_proxy_configmap.stdout or 'patched' in patch_kube_proxy_configmap.stdout or patch_kube_proxy_configmap.rc == 0"
   environment: "{{ kubeconfig_env }}"
   become: true
   become_user: root
+
 
 
 - name: Wait for kube-proxy pod to be Running
