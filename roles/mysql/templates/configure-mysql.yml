@@ -12,7 +12,7 @@
     # Or provide specific kubeconfig path and context if needed
     kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config') }}"
     kube_context: "kubernetes-admin@kubernetes" # Replaced with your Kubernetes context
-    namespace: "mysql" # Replace with the namespace where your MySQL pod is running
+    namespace: "sdv" # Replace with the namespace where your MySQL pod is running
     mysql_app_label: "app=mysql" # Label to identify your MySQL pod (e.g., from your deployment)
 
     # --- MySQL Database Details ---
