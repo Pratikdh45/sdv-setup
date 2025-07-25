@@ -337,14 +337,16 @@
   become: true # This task needs root to read from /etc/kubernetes/admin.conf
   become_user: root
 
+# [ ... all your existing tasks above remain unchanged ... ]
+
 # Step 11: Apply Calico CNI
 - name: Install Calico CNI
   ansible.builtin.shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
   environment:
-    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"  # Use the new path!
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
   args:
     creates: /etc/cni/net.d/calico-kubeconfig
-  become: true # kubectl apply often needs root (or relevant permissions)
+  become: true
   become_user: root
 
 - name: Check if control-plane taint exists
@@ -368,39 +370,55 @@
   become: true
   become_user: root
 
-
-# # Step 11.1: Remove the control-plane taint
-# - name: Remove control-plane taint from the node
-#   ansible.builtin.shell: |
-#     # Get the node name
-#     NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
-#     # Taint the node
-#     kubectl taint nodes "$NODE_NAME" node-role.kubernetes.io/control-plane- --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config"
-#   register: taint_result
-#   changed_when: "'NoSchedule' in taint_result.stdout or 'NoSchedule' in taint_result.stderr"
-#   environment:
-#     KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"  # Ensure kubectl uses the accessible config
-#   become: true
-#   become_user: root
-
 - name: Verify taint removal
   ansible.builtin.shell: |
     NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' --kubeconfig="{{ ansible_facts['user_dir'] }}/.kube/config")
-    # Use grep -q to make it quiet and just check exit code.
-    # The regex "Taints:\s*<none>" will match "Taints:" followed by any number of spaces, then "<none>".
     kubectl describe node "$NODE_NAME" | grep -q "Taints:\s*<none>"
   register: taint_check
-  # No 'until' needed; the success/failure is determined by grep's exit code
-  retries: 5 # These retries are for the shell command itself, in case kubectl isn't ready immediately
+  retries: 5
   delay: 10
   environment:
-    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config" 
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
   become: true
   become_user: root
-  changed_when: false # This task is only for verification, not changing state
-  failed_when: taint_check.rc != 0 # Fail if grep -q didn't find the string (rc=1)
+  changed_when: false
+  failed_when: taint_check.rc != 0
 
+# ✅ Step 11.1: Ensure kube-root-ca.crt configmap for kube-proxy
+- name: Ensure kube-root-ca.crt ConfigMap exists in kube-system
+  ansible.builtin.shell: |
+    kubectl get configmap kube-root-ca.crt -n kube-system || \
+    kubectl create configmap kube-root-ca.crt --from-file=/etc/kubernetes/pki/ca.crt -n kube-system
+  environment:
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
+  become: true
+  become_user: root
+  register: create_root_ca_cm
+  changed_when: "'created' in create_root_ca_cm.stdout"
+
+# ✅ Step 11.2: Restart kube-proxy pods
+- name: Force delete kube-proxy pod to restart with fixed configmap
+  ansible.builtin.shell: |
+    kubectl delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
+  environment:
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
+  ignore_errors: yes
+  become: true
+  become_user: root
+
+# ✅ Step 11.3: Wait for kube-proxy to come up
+- name: Wait for kube-proxy to come up healthy
+  ansible.builtin.shell: |
+    kubectl get pods -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[0].status.phase}'
+  register: kube_proxy_status
+  until: kube_proxy_status.stdout == "Running"
+  retries: 10
+  delay: 10
+  environment:
+    KUBECONFIG: "{{ ansible_facts['user_dir'] }}/.kube/config"
+  become: true
+  become_user: root
 
 # Step 12: Grant read permission to /etc/kubernetes/admin.conf
-- name:  Grant read permission to /etc/kubernetes/admin.conf
+- name: Grant read permission to /etc/kubernetes/admin.conf
   command: chmod o+r /etc/kubernetes/admin.conf
