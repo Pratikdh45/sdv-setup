@@ -341,21 +341,6 @@
   become: true # This task needs root to read from /etc/kubernetes/admin.conf
   become_user: root
 
-# - name: Pause Waiting for k8s to be ready
-#   ansible.builtin.pause:
-#     seconds: 360
-#   when: k8s_is_ready_or_initialized
-
-# ✅ Step 11: Apply Calico CNI
-- name: Install Calico CNI
-  ansible.builtin.shell: |
-    kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
-  args:
-    creates: /etc/cni/net.d/calico-kubeconfig
-  environment: "{{ kubeconfig_env }}"
-  become: true
-  become_user: root
-
   
 # ✅ Step 11.1: Remove control-plane taint (if exists)
 - name: Check if control-plane taint exists
@@ -421,6 +406,43 @@
   become: true
   become_user: root
 
+- name: Wait for kube-proxy to be running
+  command: kubectl get pods -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[0].status.phase}'
+  register: proxy_status
+  until: proxy_status.stdout == "Running"
+  retries: 20
+  delay: 10
+  become: true
+  become_user: root
+
 # Step 12:
 - name: Grant read permission to /etc/kubernetes/admin.conf
   command: chmod o+r /etc/kubernetes/admin.conf
+
+- name: Wait for Kubernetes kube-proxy pod to be ready
+  ansible.builtin.pause:
+    seconds: 130
+
+# ✅ Step 11: Apply Calico CNI
+- name: Install Calico CNI
+  ansible.builtin.shell: |
+    kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+  args:
+    creates: /etc/cni/net.d/calico-kubeconfig
+  environment: "{{ kubeconfig_env }}"
+  become: true
+  become_user: root
+
+- name: Wait for calico-node pods to be Running
+  shell: |
+    kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}'
+  register: calico_status
+  until: "'Running' in calico_status.stdout"
+  retries: 10
+  delay: 15
+  become: true
+  become_user: root
+
+- name: Waiting for Calico CNI to be ready
+  ansible.builtin.pause:
+    seconds: 90

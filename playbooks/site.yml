@@ -7,6 +7,6 @@
     - OSdetection
     - python
     - k8s_setup
-    # - monitoring
-    # - mysql
-    # - frontend
+    - monitoring
+    - mysql
+    - frontend
