@@ -337,7 +337,10 @@
   become: true # This task needs root to read from /etc/kubernetes/admin.conf
   become_user: root
 
-# [ ... all your existing tasks above remain unchanged ... ]
+- name: Pause Waiting for k8s to be ready
+  ansible.builtin.pause:
+    seconds: 360
+  when: k8s_is_ready_or_initialized
 
 # Step 11: Apply Calico CNI
 - name: Install Calico CNI
@@ -419,6 +422,15 @@
   become: true
   become_user: root
 
-# Step 12: Grant read permission to /etc/kubernetes/admin.conf
+
+# Step 12:
+- name: Export KUBECONFIG environment variable
+  command: export KUBECONFIG=/etc/kubernetes/admin.conf
+
+# Step 13:
+- name: Echo KUBECONFIG variable
+  command: echo $KUBECONFIG
+  
+# Step 14:
 - name: Grant read permission to /etc/kubernetes/admin.conf
   command: chmod o+r /etc/kubernetes/admin.conf
