@@ -408,7 +408,7 @@
 # Step 10.1: Wait until kube-apiserver is ready before modifying
 - name: Pause before updating manifest (only if cluster was just initialized or is already running)
   ansible.builtin.pause:
-    seconds: 90
+    seconds: 200
   when: k8s_is_ready_or_initialized
 
 # Step 10.2: Modify kube-apiserver bind address
