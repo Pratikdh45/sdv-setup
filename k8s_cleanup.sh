@@ -33,6 +33,49 @@ sudo ip link del cni0 || true
 sudo ip link set flannel.1 down || true # For Flannel CNI
 sudo ip link del flannel.1 || true
 
+# Calico specific interfaces
+echo "Cleaning up Calico CNI network interfaces..."
+# Bring down and delete the main Calico tunnel interface (if used)
+sudo ip link set tunl0 down || true
+sudo ip link del tunl0 || true
+
+# Find and delete any 'cali' interfaces (e.g., caliABCD, cali01234)
+# Calico creates ephemeral 'cali' interfaces for each pod.
+# This loop finds and deletes them.
+for iface in $(ip link show | grep -oE 'cali[a-f0-9]+'); do
+    echo "  Bringing down and deleting Calico interface: $iface"
+    sudo ip link set "$iface" down || true
+    sudo ip link del "$iface" || true
+done
+
+
+echo "📌 Step 1: Delete Calico resources (DaemonSet, CRDs, etc.)"
+kubectl delete -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml --ignore-not-found
+
+echo "📌 Step 2: Delete any leftover Calico pods"
+kubectl delete pods -n kube-system -l k8s-app=calico-node --ignore-not-found
+
+echo "📌 Step 3: Delete Calico CRDs"
+calico_crds=$(kubectl get crds | grep 'projectcalico.org' | awk '{print $1}')
+for crd in $calico_crds; do
+  kubectl delete crd "$crd" --ignore-not-found
+done
+
+echo "📌 Step 4: Delete Calico-related ConfigMaps and Secrets"
+kubectl delete configmap -n kube-system calico-config --ignore-not-found
+kubectl delete secret -n kube-system calico-etcd-secrets --ignore-not-found
+
+echo "📌 Step 5: Remove Calico CNI plugin files"
+rm -rf /etc/cni/net.d/*calico*
+rm -rf /opt/cni/bin/calico*
+rm -rf /var/lib/cni/
+rm -rf /var/run/calico
+
+# echo "📌 Step 6: Restart kubelet to reinitialize CNI"
+# systemctl restart kubelet
+
+
+
 # 6. Remove Kubernetes packages
 echo "Purging Kubernetes packages..."
 # Attempt for Debian/Ubuntu
@@ -87,20 +130,20 @@ done
 # rm -rf ~/some-cni-project-directory || true
 
 
-# 9. More thorough Docker cleanup (beyond just stopping/disabling)
-echo "Performing more thorough Docker cleanup (removes all images, containers, volumes, networks)..."
-# Stop all running containers
-sudo docker stop $(sudo docker ps -aq) || true
-# Remove all containers
-sudo docker rm $(sudo docker ps -aq) || true
-# Remove all images
-sudo docker rmi $(sudo docker images -aq) || true
-# Remove all volumes
-sudo docker volume rm $(sudo docker volume ls -q) || true
-# Remove all networks (except bridge, host, none)
-sudo docker network rm $(sudo docker network ls -q | grep -v "bridge\|host\|none" | awk '{print $1}') || true
-# Prune all unused Docker data
-sudo docker system prune -a -f --volumes || true
+# # 9. More thorough Docker cleanup (beyond just stopping/disabling)
+# echo "Performing more thorough Docker cleanup (removes all images, containers, volumes, networks)..."
+# # Stop all running containers
+# sudo docker stop $(sudo docker ps -aq) || true
+# # Remove all containers
+# sudo docker rm $(sudo docker ps -aq) || true
+# # Remove all images
+# sudo docker rmi $(sudo docker images -aq) || true
+# # Remove all volumes
+# sudo docker volume rm $(sudo docker volume ls -q) || true
+# # Remove all networks (except bridge, host, none)
+# sudo docker network rm $(sudo docker network ls -q | grep -v "bridge\|host\|none" | awk '{print $1}') || true
+# # Prune all unused Docker data
+# sudo docker system prune -a -f --volumes || true
 # Remove Docker data directories
 echo "Removing Docker data directories..."
 sudo rm -rf /var/lib/docker || true
@@ -114,7 +157,7 @@ echo "Removing Containerd data directories (use with caution if you have other c
 sudo rm -rf /var/lib/containerd || true # For Containerd
 
 
-
+sudo rm -rf /usr/local/bin/python
 sudo rm -rf /usr/local/bin/python3.12
 sudo rm -rf /usr/local/lib/python3.12
 sudo rm -rf /usr/local/include/python3.12
