@@ -600,18 +600,18 @@
 - name: Step 11.1 - Download Calico manifest locally
   get_url:
     url: https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
-    dest: /tmp/calico.yaml
+    dest: "{{ playbook_dir }}/../roles/k8s_setup/templates/calico.yaml"
     mode: '0644'
 
 - name: Step 11.2 - Patch CALICO_IPV4POOL_CIDR and add CALICO_IPV6POOL_CIDR in calico.yaml
   replace:
-    path: /tmp/calico.yaml
+    path: "{{ playbook_dir }}/../roles/k8s_setup/templates/calico.yaml"
     regexp: 'value: "192.168.0.0/16"'
     replace: 'value: "192.168.0.0/16"\n        - name: CALICO_IPV6POOL_CIDR\n          value: "fd00::/64"'
 
 - name: Step 11.3 - Ensure IP autodetection method is set properly
   replace:
-    path: /tmp/calico.yaml
+    path: "{{ playbook_dir }}/../roles/k8s_setup/templates/calico.yaml"
     regexp: 'name: IP_AUTODETECTION_METHOD\n\s+value: ".*"'
     replace: 'name: IP_AUTODETECTION_METHOD\n          value: "can-reach=8.8.8.8"'
 
@@ -640,9 +640,9 @@
     name: kubelet
     state: restarted
 
-- name: Step 11.7 - Reapply Calico if needed
-  command: kubectl apply -f /tmp/calico.yaml
-  when: calico_status.stdout != "Running"
+# - name: Step 11.7 - Reapply Calico if needed
+#   command: kubectl apply -f "{{ playbook_dir }}/../roles/k8s_setup/templates/calico.yaml"
+#   when: calico_status.stdout != "Running"
 
 - name: Step 11.8 - Pause to allow Calico to stabilize
   ansible.builtin.pause:
