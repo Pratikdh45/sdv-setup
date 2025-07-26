@@ -595,7 +595,7 @@
 - name: Step 11.1 -  Calico manifest 
   # get_url:
     # url: https://raw.githubusercontent.com/projectcalico/calico/v3.30.1/manifests/calico.yaml
-    shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+  shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
