@@ -408,7 +408,7 @@
 # Step 10.1: Wait until kube-apiserver is ready before modifying
 - name: Pause before updating manifest (only if cluster was just initialized or is already running)
   ansible.builtin.pause:
-    seconds: 200
+    seconds: 180
   when: k8s_is_ready_or_initialized
 
 # Step 10.2: Modify kube-apiserver bind address
@@ -587,13 +587,9 @@
 - name: Grant read permission to /etc/kubernetes/admin.conf
   command: chmod o+r /etc/kubernetes/admin.conf
 
-- name: Wait for Kubernetes kube-proxy pod to be ready
-  ansible.builtin.pause:
-    seconds: 60
-
-
-
-
+# - name: Wait for Kubernetes kube-proxy pod to be ready
+#   ansible.builtin.pause:
+#     seconds: 60
 
 
 
