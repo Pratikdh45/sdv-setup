@@ -50,7 +50,7 @@ done
 
 
 echo "📌 Step 1: Delete Calico resources (DaemonSet, CRDs, etc.)"
-kubectl delete -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml --ignore-not-found
+kubectl delete -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml --ignore-not-found
 
 echo "📌 Step 2: Delete any leftover Calico pods"
 kubectl delete pods -n kube-system -l k8s-app=calico-node --ignore-not-found
