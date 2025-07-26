@@ -1,6 +1,6 @@
 ---
-# Step 8: Swap off (made idempotent)
-- name: Ensure swap is disabled (temporarily)
+# Swapoff
+- name: Step 1:Ensure swap is disabled (temporarily)
   ansible.builtin.command: swapoff -a
   when: ansible_facts['swaptotal_mb'] > 0 # Only run if swap is active
 
@@ -18,16 +18,16 @@
 
 
 
+#Prerequisites
 
-
-- name: Install pre-requisite packages on Amazon Linux
+- name: Step2:Install pre-requisite packages
   include_tasks: "{{ playbook_dir }}/../roles/k8s_setup/templates/prerequisites.yml"
 
 - name: Debug vars
   debug:
     var: k8s_packages
 
-# Step 0: Prerequisites
+
 - name: Install Kubernetes pre-requisite packages
   include_tasks: "{{ playbook_dir }}/../roles/k8s_setup/templates/k8s-prerequisites.yml"
 
@@ -147,19 +147,14 @@
         name: net.ipv4.ip_forward
         value: 1
 
-
-
-
-
-
-# Step 1: Prepare binary path
+# Prepare binary path
 - name: Create /usr/local/bin if not exists
   file:
     path: /usr/local/bin
     state: directory
     mode: '0755'
 
-# Step 2: Install kubeadm, kubelet, kubectl
+# Install kubeadm, kubelet, kubectl
 - name: Install kubeadm, kubelet, kubectl binaries
   get_url:
     url: "https://dl.k8s.io/release/{{ kube_version }}/bin/linux/amd64/{{ item }}"
@@ -170,7 +165,7 @@
     - kubeadm
     - kubectl
 
-# Step 3: kubelet systemd
+# kubelet systemd
 - name: Create kubelet systemd unit file
   copy:
     dest: /etc/systemd/system/kubelet.service
@@ -209,45 +204,19 @@
       ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS
     mode: '0644'
 
-# Step 4: Reload systemd
+# Reload systemd
 - name: Reload systemd daemon
   command: systemctl daemon-reload
 
 - name: Re-exec systemd process
   command: systemctl daemon-reexec
 
-# Step 5: Start kubelet
+# Start kubelet
 - name: Enable and start kubelet
   systemd:
     name: kubelet
     enabled: yes
     state: started
-
-# # Step 6: Install Helm
-# - name: Download Helm install script
-#   get_url:
-#     url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-#     dest: /tmp/get_helm.sh
-#     mode: '0755'
-
-# - name: Install Helm
-#   shell: /tmp/get_helm.sh
-#   args:
-#     creates: /usr/local/bin/helm
-
-
-
-
-# # Step 7: Docker install & start
-# - name: Install Docker
-#   include_tasks: "{{ playbook_dir }}/../roles/k8s_setup/templates/docker-install.yml"
-
-# - name: Enable and start Docker
-#   systemd:
-#     name: docker
-#     enabled: yes
-#     state: started
-
 
 
 - name: Load br_netfilter kernel module
@@ -268,7 +237,7 @@
 
 # --- Idempotency Checks for Kubernetes Initialization & Self-Healing ---
 
-- name: Check if Kubernetes master configuration exists
+- name: Step 3:Check if Kubernetes master configuration exists
   ansible.builtin.stat:
     path: /etc/kubernetes/admin.conf
   register: k8s_config_exists
@@ -312,8 +281,8 @@
     msg: "admin_conf_absent is: {{ admin_conf_absent }}"
 
 
-# Step 9: kubeadm init (will run if admin.conf doesn't exist)
-- name: Initialize Kubernetes cluster
+# kubeadm init (will run if admin.conf doesn't exist)
+- name: Step 4:Initialize Kubernetes cluster
   ansible.builtin.command: kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=all
   register: kubeadm_init_result
   changed_when: kubeadm_init_result.rc == 0 and "Your Kubernetes control-plane has initialized successfully!" in kubeadm_init_result.stdout
@@ -335,62 +304,8 @@
     msg: "Kubernetes is ready or was initialized in this run: {{ k8s_is_ready_or_initialized }}"
 
 
-
-
-
-
-
-
-
-
-
-
-
-# # --- Attempt to fix container runtime issues and force API server restart ---
-# # This block runs if the cluster is not healthy OR is being initialized for the first time
-# - name: Pull recommended Kubernetes pause image (v3.9)
-#   ansible.builtin.shell: |
-#     # Detect container runtime and pull image accordingly
-#     if command -v docker &> /dev/null; then
-#       sudo docker pull registry.k8s.io/pause:3.9
-#     elif command -v crictl &> /dev/null; then
-#       sudo crictl pull registry.k8s.io/pause:3.9
-#     else
-#       echo "No supported container runtime (docker or containerd) found to pull pause image."
-#       exit 1
-#     fi
-#   register: pull_pause_image_result
-#   changed_when: "'Pulled' in pull_pause_image_result.stdout or 'Image is up to date' not in pull_pause_image_result.stdout"
-#   # Simplified 'when' condition to ensure it runs if config exists or if it's a fresh install path
-#   when: admin_conf_absent or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0)
-#   become: yes
-
-# - name: Restart container runtime service to apply changes
-#   ansible.builtin.systemd:
-#     name: "{{ 'docker' if ansible_facts['service_mgr'] == 'systemd' and ansible_facts['services']['docker.service'] is defined and ansible_facts['services']['docker.service']['state'] == 'running' else 'containerd' }}"
-#     state: restarted
-#     daemon_reload: yes
-#   when:
-#     - (admin_conf_absent or k8s_is_unhealthy_but_exists or (k8s_config_exists.stat.exists and k8s_api_health_check.rc == 0))
-#     - ansible_facts['service_mgr'] == 'systemd'
-#     - (ansible_facts['services']['docker.service'] is defined and ansible_facts['services']['docker.service']['state'] == 'running') or
-#       (ansible_facts['services']['containerd.service'] is defined and ansible_facts['services']['containerd.service']['state'] == 'running')
-#   become: yes
-
-
-
-
-
-
-
-
-
-
-
-
-
 # --- Manual IP Input ---
-- name: Prompt for private IP address
+- name: Step 5:Prompt for private IP address
   ansible.builtin.pause:
     prompt: "Please enter the private IP address of this machine (e.g., 10.0.0.10)"
     echo: yes
@@ -403,16 +318,16 @@
   when: k8s_is_ready_or_initialized
 
 
-# Step 10: Skip setting /root/.kube/config, use admin.conf directly
+# Skip setting /root/.kube/config, use admin.conf directly
 
-# Step 10.1: Wait until kube-apiserver is ready before modifying
-- name: Pause before updating manifest (only if cluster was just initialized or is already running)
+# Wait until kube-apiserver is ready before modifying
+- name: Step 6:Pause before updating manifest (only if cluster was just initialized or is already running)
   ansible.builtin.pause:
     seconds: 180
   when: k8s_is_ready_or_initialized
 
-# Step 10.2: Modify kube-apiserver bind address
-- name: Replace --bind-address in kube-apiserver.yaml (only if cluster was just initialized or is already running)
+#  Modify kube-apiserver bind address
+- name: Step 7:Replace --bind-address in kube-apiserver.yaml (only if cluster was just initialized or is already running)
   ansible.builtin.replace:
     path: /etc/kubernetes/manifests/kube-apiserver.yaml
     regexp: '--bind-address=127\.0\.0\.1'
@@ -435,8 +350,8 @@
   when: k8s_is_ready_or_initialized
 
 
-# Step 10.3: Wait until kube-apiserver pod is Running (only if cluster was just initialized or is already running)
-- name: Wait for kube-apiserver pod
+# Wait until kube-apiserver pod is Running (only if cluster was just initialized or is already running)
+- name: Step 8:Wait for kube-apiserver pod
   ansible.builtin.shell: |
     KUBECONFIG=/etc/kubernetes/admin.conf \
     kubectl get pod -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.phase}'
@@ -450,7 +365,7 @@
   become_user: root
   when: k8s_is_ready_or_initialized
 
-# Step 10.4: Health check over private IP (only if cluster was just initialized or is already running)
+# Health check over private IP (only if cluster was just initialized or is already running)
 - name: Wait for Kubernetes API server to become available
   ansible.builtin.uri:
     url: https://{{ private_ip }}:6443/healthz
@@ -462,7 +377,7 @@
   delay: 15
   when: k8s_is_ready_or_initialized
 
-# Step 10.5: Copy admin.conf to ec2-user's .kube directory and set permissions
+# Copy admin.conf to ec2-user's .kube directory and set permissions
 - name: Ensure .kube directory exists
   ansible.builtin.file:
     path: "{{ ansible_facts['user_dir'] }}/.kube" # Use ansible_facts for home dir
@@ -485,7 +400,7 @@
   become_user: root
 
   
-# ✅ Step 11.1: Remove control-plane taint (if exists)
+# Remove control-plane taint (if exists)
 - name: Check if control-plane taint exists
   ansible.builtin.shell: |
     kubectl describe node $(kubectl get nodes -o jsonpath='{.items[0].metadata.name}') | grep -q "node-role.kubernetes.io/control-plane:NoSchedule"
@@ -507,17 +422,7 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-# ✅ Step 11.2: Ensure kube-root-ca.crt ConfigMap exists
+# Ensure kube-root-ca.crt ConfigMap exists
 - name: Ensure kube-root-ca.crt ConfigMap exists in kube-system
   shell: |
     kubectl get configmap kube-root-ca.crt -n kube-system || \
@@ -528,8 +433,8 @@
   become: true
   become_user: root
 
-# ✅ Step 11.3: Restart kube-proxy pods [First one ensures the pod doesn’t run on an incomplete/old config during apply.]
-- name: Delete kube-proxy pod to restart
+# Restart kube-proxy pods [First one ensures the pod doesn’t run on an incomplete/old config during apply.]
+- name: Step9 9:Delete kube-proxy pod to restart
   shell: |
     kubectl delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
   ignore_errors: yes
@@ -582,46 +487,20 @@
   become: true
   become_user: root
 
-# Step 12:
-- name: Grant read permission to /etc/kubernetes/admin.conf
+
+- name: Step 10:Grant read permission to /etc/kubernetes/admin.conf
   command: chmod o+r /etc/kubernetes/admin.conf
 
-# - name: Wait for Kubernetes kube-proxy pod to be ready
-#   ansible.builtin.pause:
-#     seconds: 60
 
-
-
-- name: Step 11.1 -  Calico manifest 
-  # get_url:
-    # url: https://raw.githubusercontent.com/projectcalico/calico/v3.30.1/manifests/calico.yaml
+- name: Step 11 -  Apply Calico manifest 
   shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
   args:
     creates: /etc/cni/net.d/calico-kubeconfig
-    # dest: /tmp/calico.yaml
-    # mode: '0644'
 
-# - name: Step 11.2 - Patch CALICO_IPV4POOL_CIDR and add CALICO_IPV6POOL_CIDR in calico.yaml
-#   replace:
-#     path: /tmp/calico.yaml
-#     regexp: 'value: "192.168.0.0/16"'
-#     replace: 'value: "192.168.0.0/16"\n        - name: CALICO_IPV6POOL_CIDR\n          value: "fd00::/64"'
-
-# - name: Step 11.3 - Ensure IP autodetection method is set properly
-#   replace:
-#     path: /tmp/calico.yaml
-#     regexp: 'name: IP_AUTODETECTION_METHOD\n\s+value: ".*"'
-#     replace: 'name: IP_AUTODETECTION_METHOD\n          value: "can-reach=8.8.8.8"'
-
-# - name: Step 11.4 - Apply customized Calico manifest
-#   command: kubectl apply -f /tmp/calico.yaml
-#   args:
-#     creates: /etc/cni/net.d/calico-kubeconfig
-
-- name: Step 11.5 - Wait for calico-node pods to be Running
+- name: Wait for calico-node pods to be Running
   shell: |
     pods=$(kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}')
     if [ -z "$pods" ]; then
@@ -636,23 +515,19 @@
   retries: 15
   delay: 15
 
-- name: Step 11.6 - Restart kubelet to fix CNI plugin issues
+- name: Restart kubelet to fix CNI plugin issues
   systemd:
     name: kubelet
     state: restarted
 
-# - name: Step 11.7 - Reapply Calico if needed
-#   command: kubectl apply -f "{{ playbook_dir }}/../roles/k8s_setup/templates/calico.yaml"
-#   when: calico_status.stdout != "Running"
 
-- name: Step 11.8 - Pause to allow Calico to stabilize
+
+- name: Step 12:Pause to allow Calico to stabilize
   ansible.builtin.pause:
     seconds: 60
 
 
-
-
-- name: Verify control-plane taint removal
+- name: Step 13:Verify control-plane taint removal
   shell: |
     NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
     kubectl describe node "$NODE_NAME" | grep -q "Taints:\s*<none>"
@@ -664,38 +539,3 @@
   changed_when: false
   become: true
   become_user: root
-
-
-
-
-
-
-# # ✅ Step 11: Apply Calico CNI
-# - name: Apply Calico
-#   command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
-#   args:
-#     creates: /etc/cni/net.d/calico-kubeconfig
-
-# - name: Wait for calico-node pods to be Running
-#   shell: |
-#     pods=$(kubectl get pods -n kube-system -l k8s-app=calico-node -o jsonpath='{.items[*].status.phase}')
-#     if [ -z "$pods" ]; then
-#       echo "NotReady"
-#     elif echo "$pods" | grep -qv "Running"; then
-#       echo "NotReady"
-#     else
-#       echo "Running"
-#     fi
-#   register: calico_status
-#   until: calico_status.stdout == "Running"
-#   retries: 15
-#   delay: 15
-
-# - name: Restart kubelet to fix CNI plugin issues
-#   systemd:
-#     name: kubelet
-#     state: restarted
-
-# - name: Reapply Calico if needed
-#   command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
-#   when: calico_status.stdout != "Running"
