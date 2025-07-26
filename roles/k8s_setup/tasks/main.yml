@@ -505,18 +505,17 @@
   become: true
   become_user: root
 
-- name: Verify control-plane taint removal
-  shell: |
-    NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
-    kubectl describe node "$NODE_NAME" | grep -q "Taints:\s*<none>"
-  register: taint_check
-  retries: 5
-  delay: 10
-  environment: "{{ kubeconfig_env }}"
-  failed_when: taint_check.rc != 0
-  changed_when: false
-  become: true
-  become_user: root
+
+
+
+
+
+
+
+
+
+
+
 
 # ✅ Step 11.2: Ensure kube-root-ca.crt ConfigMap exists
 - name: Ensure kube-root-ca.crt ConfigMap exists in kube-system
@@ -647,6 +646,18 @@
 
 
 
+- name: Verify control-plane taint removal
+  shell: |
+    NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
+    kubectl describe node "$NODE_NAME" | grep -q "Taints:\s*<none>"
+  register: taint_check
+  retries: 5
+  delay: 10
+  environment: "{{ kubeconfig_env }}"
+  failed_when: taint_check.rc != 0
+  changed_when: false
+  become: true
+  become_user: root
 
 
 
