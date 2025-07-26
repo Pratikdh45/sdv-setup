@@ -611,7 +611,7 @@
     replace: 'name: IP_AUTODETECTION_METHOD\n          value: "can-reach=8.8.8.8"'
 
 - name: Step 11.4 - Apply customized Calico manifest
-  command: kubectl apply -f /tmp/calico.yaml
+  command: kubectl apply -f "{{ playbook_dir }}/../roles/k8s_setup/templates/calico.yaml"
   args:
     creates: /etc/cni/net.d/calico-kubeconfig
 
