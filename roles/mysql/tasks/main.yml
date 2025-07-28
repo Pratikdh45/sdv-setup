@@ -8,24 +8,6 @@
   become: true
   become_user: root
 
-- name: Deploy storage class
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/storageclass.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
-
-- name: Deploy pv & pvc Playbook
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
-
 - name: MySql deploy and svc Playbook
   kubernetes.core.k8s:
     src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-deploy-and-svc.yml"
@@ -88,16 +70,20 @@
   become: true
   become_user: root
 
+- name: Deploy storage class
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/mysql/templates/storageclass.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
 
-
-# - name: Create sdv_data database and user
-#   kubernetes.core.k8s_exec:
-#     namespace: sdv
-#     pod: "{{ item.metadata.name }}"
-#     command: ["/bin/sh", "-c", "mysql -u root -p$MYSQL_ROOT_PASSWORD -e \"CREATE DATABASE IF NOT EXISTS sdv_data; CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234'; GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;\""]
-#     kubeconfig: /etc/kubernetes/admin.conf
-#   with_items: "{{ mysql_pods.resources }}"
-#   vars:
-#     mysql_root_password: "admin"
-#   become: true
-#   become_user: root
+- name: Deploy pv & pvc Playbook
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
