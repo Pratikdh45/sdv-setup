@@ -59,14 +59,50 @@
   become: true
   become_user: root
 
+- name: Wait for MySQL pod to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    label_selectors:
+      - app=mysql
+    namespace: sdv
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: mysql_pods
+  until: mysql_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
+  retries: 10
+  delay: 15
+  become: true
+  become_user: root
+
+
 - name: Create sdv_data database and user
   kubernetes.core.k8s_exec:
     namespace: sdv
     pod: "{{ item.metadata.name }}"
-    command: ["/bin/sh", "-c", "mysql -u root -p$MYSQL_ROOT_PASSWORD -e \"CREATE DATABASE IF NOT EXISTS sdv_data; CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234'; GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;\""]
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mysql -u root -p{{ mysql_root_password }} -e "
+          CREATE DATABASE IF NOT EXISTS sdv_data;
+          CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234';
+          GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION;
+          FLUSH PRIVILEGES;"
     kubeconfig: /etc/kubernetes/admin.conf
   with_items: "{{ mysql_pods.resources }}"
   vars:
-    mysql_root_password: "admin"
+    mysql_root_password: "Pa$$W0Rd654#"
   become: true
   become_user: root
+
+
+# - name: Create sdv_data database and user
+#   kubernetes.core.k8s_exec:
+#     namespace: sdv
+#     pod: "{{ item.metadata.name }}"
+#     command: ["/bin/sh", "-c", "mysql -u root -p$MYSQL_ROOT_PASSWORD -e \"CREATE DATABASE IF NOT EXISTS sdv_data; CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234'; GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;\""]
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   with_items: "{{ mysql_pods.resources }}"
+#   vars:
+#     mysql_root_password: "admin"
+#   become: true
+#   become_user: root
