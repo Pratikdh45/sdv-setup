@@ -323,7 +323,7 @@
 # Wait until kube-apiserver is ready before modifying
 - name: Step 6:Pause before updating manifest (only if cluster was just initialized or is already running)
   ansible.builtin.pause:
-    seconds: 180
+    seconds: 30
   when: k8s_is_ready_or_initialized
 
 #  Modify kube-apiserver bind address
@@ -524,7 +524,7 @@
 
 - name: Step 12:Pause to allow Calico to stabilize
   ansible.builtin.pause:
-    seconds: 60
+    seconds: 30
 
 
 - name: Step 13:Verify control-plane taint removal
