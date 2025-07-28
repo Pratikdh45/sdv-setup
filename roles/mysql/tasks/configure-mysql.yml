@@ -26,11 +26,11 @@
     mysql_app_label: "app=mysql" # Label to identify your MySQL pod (e.g., from your deployment)
 
     # --- MySQL Database Details ---
-    mysql_root_password: "Pa$$W0Rd654#" # IMPORTANT: Replace with your actual MySQL root password
+    mysql_root_password: "Pa$$W0Rd0945#" # IMPORTANT: Replace with your actual MySQL root password
     new_database_name: "data_vault"
-    new_user_name: "dvuser"
-    new_user_password: "nsdl1234"
-    grant_user_name: "dvuser" # User for the grant command, adjust if different from new_user_name
+    new_user_name: "chaiuser"
+    new_user_password: "wh@0945"
+    grant_user_name: "chaiuser" # User for the grant command, adjust if different from new_user_name
 
   # tasks:
 - name: Ensure Kubernetes Python client is installed
