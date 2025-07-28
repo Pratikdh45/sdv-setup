@@ -46,3 +46,25 @@
 
 # - name: MySQL Configuration Logic
 #   include_tasks: "{{ playbook_dir }}/../roles/mysql/tasks/configure-mysql.yml"
+
+
+- name: Get mysql pod
+  kubernetes.core.k8s_info:
+    kind: Pod
+    label_selectors:
+      - app=mysql
+    namespace: sdv
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: mysql_pods
+  become: true
+  become_user: root
+
+- name: Create sdv_data database and user
+  kubernetes.core.k8s_exec:
+    namespace: sdv
+    pod: "{{ item.metadata.name }}"
+    command: ["/bin/sh", "-c", "mysql -u root -p$MYSQL_ROOT_PASSWORD -e \"CREATE DATABASE IF NOT EXISTS sdv_data; CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234'; GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;\""]
+    kubeconfig: "{{ ansible_user_dir }}/.kube/config"
+  with_items: "{{ mysql_pods.resources }}"
+  vars:
+    mysql_root_password: "admin"
