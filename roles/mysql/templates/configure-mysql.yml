@@ -26,7 +26,7 @@
     mysql_app_label: "app=mysql" # Label to identify your MySQL pod (e.g., from your deployment)
 
     # --- MySQL Database Details ---
-    mysql_root_password: "Pa$$W0Rd0945#" # IMPORTANT: Replace with your actual MySQL root password
+    mysql_root_password: "Pa$$W0Rd654#" # IMPORTANT: Replace with your actual MySQL root password
     new_database_name: "data_vault"
     new_user_name: "chaiuser"
     new_user_password: "wh@0945"
