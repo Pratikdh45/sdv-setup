@@ -68,3 +68,5 @@
   with_items: "{{ mysql_pods.resources }}"
   vars:
     mysql_root_password: "admin"
+  become: true
+  become_user: root
