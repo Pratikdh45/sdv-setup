@@ -11,12 +11,12 @@ echo "Stopping and disabling kubelet service..."
 sudo systemctl stop kubelet || true
 sudo systemctl disable kubelet || true
 
-# 3. Stop and disable container runtime services (Docker or containerd)
-echo "Stopping and disabling container runtime services (Docker/containerd)..."
-sudo systemctl stop docker || true
-sudo systemctl disable docker || true
-sudo systemctl stop containerd || true
-sudo systemctl disable containerd || true
+# # 3. Stop and disable container runtime services (Docker or containerd)
+# echo "Stopping and disabling container runtime services (Docker/containerd)..."
+# sudo systemctl stop docker || true
+# sudo systemctl disable docker || true
+# sudo systemctl stop containerd || true
+# sudo systemctl disable containerd || true
 
 # 4. Remove Kubernetes configuration and data directories
 echo "Removing Kubernetes configuration and data directories..."
@@ -49,8 +49,8 @@ for iface in $(ip link show | grep -oE 'cali[a-f0-9]+'); do
 done
 
 
-echo "📌 Step 1: Delete Calico resources (DaemonSet, CRDs, etc.)"
-kubectl delete -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml --ignore-not-found
+# echo "📌 Step 1: Delete Calico resources (DaemonSet, CRDs, etc.)"
+# kubectl delete -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml --ignore-not-found
 
 echo "📌 Step 2: Delete any leftover Calico pods"
 kubectl delete pods -n kube-system -l k8s-app=calico-node --ignore-not-found
