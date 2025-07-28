@@ -75,20 +75,14 @@
 
 
 - name: Create sdv_data database and user
-  kubernetes.core.k8s_exec:
-    namespace: sdv
-    pod: "{{ item.metadata.name }}"
-    command:
-      - /bin/sh
-      - -c
-      - |
-        mysql -u root -p{{ mysql_root_password }} -e "
-          CREATE DATABASE IF NOT EXISTS sdv_data;
-          CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234';
-          GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION;
-          FLUSH PRIVILEGES;"
-    kubeconfig: /etc/kubernetes/admin.conf
-  with_items: "{{ mysql_pods.resources }}"
+  shell: |
+    kubectl exec -n sdv {{ item.metadata.name }} \
+      -- mysql -u root -p{{ mysql_root_password }} -e "\
+      CREATE DATABASE IF NOT EXISTS sdv_data;
+      CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234';
+      GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION;
+      FLUSH PRIVILEGES;"
+  loop: "{{ mysql_pods.resources }}"
   vars:
     mysql_root_password: "Pa$$W0Rd654#"
   become: true
