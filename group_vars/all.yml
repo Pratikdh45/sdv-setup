@@ -5,7 +5,7 @@ k8s_packages:
   - kubectl
   - helm
 
-kube_version: v1.29.0
+kube_version: v1.31.0
 
 nginx_release_name: nginx
 prometheus_release_name: prometheus
@@ -31,6 +31,8 @@ node_exporter_values:
 # kube_context: "kubernetes-admin@kubernetes"
 # mysql_app_label: "app=mysql"
 mysql_root_password: "Pa$$W0Rd654"
+localhost: 127.0.0.1
+mysql_port: 3306
 # new_database_name: "data_vault"
 # new_user_name: "dvuser"
 # new_user_password: "nsdl1234"

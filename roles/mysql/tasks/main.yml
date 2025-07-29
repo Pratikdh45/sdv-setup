@@ -80,13 +80,13 @@
 - name: Create sdv_data database and user
   shell: |
     kubectl exec -n sdv {{ item.metadata.name }} -- \
-    mysql -h 127.0.0.1 -P 3306 -u root -p'{{ mysql_root_password }}' -e "\
+    mysql -h '{{localhost}}' -P '{{mysql_port}}' -u root -p'{{ mysql_root_password }}' -e "\
       CREATE DATABASE IF NOT EXISTS sdv_data;
       CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234';
       GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION;
       FLUSH PRIVILEGES;"
   loop: "{{ mysql_pods.resources }}"
-  vars:
-    mysql_root_password: "Pa$$W0Rd654"
+  # vars:
+  #   mysql_root_password: "Pa$$W0Rd654"
   become: true
   become_user: root
