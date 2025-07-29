@@ -26,14 +26,9 @@ grafana_values:
 node_exporter_values:
   service_port: 9100
 
-# sdv_namespace: sdv
-# kubeconfig_path: /etc/kubernetes/admin.conf
-# kube_context: "kubernetes-admin@kubernetes"
-# mysql_app_label: "app=mysql"
+
 mysql_root_password: "Pa$$W0Rd654"
 localhost: 127.0.0.1
 mysql_port: 3306
-# new_database_name: "data_vault"
-# new_user_name: "dvuser"
-# new_user_password: "nsdl1234"
-# grant_user_name: "dvuser"
+mysql_user_password: "nsdl1234"
+mysql_user_name: "dvuser"

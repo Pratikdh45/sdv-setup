@@ -82,7 +82,7 @@
     kubectl exec -n sdv {{ item.metadata.name }} -- \
     mysql -h '{{localhost}}' -P '{{mysql_port}}' -u root -p'{{ mysql_root_password }}' -e "\
       CREATE DATABASE IF NOT EXISTS sdv_data;
-      CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234';
+      CREATE USER IF NOT EXISTS '{{mysql_user_name}}'@'%' IDENTIFIED BY '{{mysql_user_password}}';
       GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION;
       FLUSH PRIVILEGES;"
   loop: "{{ mysql_pods.resources }}"
