@@ -17,7 +17,7 @@ echo "----------------------------------------------------"
 # --- Phase 1: Application & Kubernetes Resource Cleanup ---
 echo "PHASE 1: Deleting Kubernetes resources (Namespace, PV, StorageClass)..."
 kubectl delete namespace sdv --ignore-not-found --timeout=2m || echo "  Namespace 'sdv' not found or could not be deleted."
-kubectl delete pv mysql-pv --ignore-not-found --timeout=30s || echo "  PersistentVolume 'mysql-pv' not found or could not be deleted."
+# kubectl delete pv mysql-pv --ignore-not-found --timeout=30s || echo "  PersistentVolume 'mysql-pv' not found or could not be deleted."
 kubectl delete storageclass local-storage --ignore-not-found --timeout=30s || echo "  StorageClass 'local-storage' not found or could not be deleted."
 echo "----------------------------------------------------"
 
@@ -81,6 +81,5 @@ fi
 echo "----------------------------------------------------"
 
 
-# --- Phase 6: System Reboot ---
-echo "PHASE 6: Cleanup complete."
-echo "Thank you! See you in a minute :)"
+echo "Cleanup complete."
+echo "Recommedned: Reboot the system to ensure all changes take effect."
