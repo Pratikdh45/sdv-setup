@@ -77,22 +77,6 @@
   become_user: root
 
 
-
-# - name: Log in to MySQL
-#   kubernetes.core.k8s_exec:
-#     namespace: sdv 
-#     pod: "{{ mysql_pod_info.resources[0].metadata.name }}" # Use the pod name found above
-#     # command: "mysql -u {{ mysql_user }} -p{{ mysql_password }} {{ mysql_database }}"
-#     #     # For security, consider using Kubernetes Secrets for credentials    
-#     command: >
-#       mysql -u {{ mysql_user }} -p{{ mysql_password }} -e "CREATE DATABASE IF NOT EXISTS {{ mysql_database }};"
-#   vars:
-#     mysql_user: "root"
-#     mysql_password: "Pa$$W0Rd654" # Use a more secure method for production
-#     mysql_database: "sdv_data"
-#   become: true
-#   become_user: root
-
 - name: Create sdv_data database and user
   shell: |
     kubectl exec -n sdv {{ item.metadata.name }} -- \
