@@ -25,16 +25,25 @@
 
 - name: Ensure Python 3 and pip are installed on Debian-based systems (apt)
   block:
-    - name: Update apt cache
-      ansible.builtin.apt:
-        update_cache: yes
-      register: apt_update_result
+    - name: Run apt-get update to get raw error output
+      ansible.builtin.shell: "apt-get update -y"
+      register: apt_update_raw
       ignore_errors: true
+      changed_when: false
 
-    - name: Fail if apt update failed
-      fail:
-        msg: "Failed to update apt cache. Please check network connectivity and repository configuration. Error: {{ apt_update_result.msg }}"
-      when: apt_update_result.failed
+    - name: Fail with detailed error if apt-get update failed
+      ansible.builtin.fail:
+        msg: |
+          Failed to update apt cache. This is a critical error.
+          Please check network connectivity and repository configuration on the server.
+          ------------------- APT ERROR -------------------
+          STDOUT:
+          {{ apt_update_raw.stdout | default('(empty)') }}
+
+          STDERR:
+          {{ apt_update_raw.stderr | default('(empty)') }}
+          -------------------------------------------------
+      when: apt_update_raw.rc != 0
 
     - name: Install python3 and python3-pip
       ansible.builtin.apt:
