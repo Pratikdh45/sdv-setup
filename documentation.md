@@ -109,6 +109,7 @@ This will execute the roles in the following order:
 Here’s how to check that all components have been deployed correctly inside the VM.
 
 ### 5.1. Check All Pods
+Take Login as root
 
 This command gives you a complete overview of all running applications across all namespaces.
 
