@@ -91,23 +91,23 @@ fi
 
 # --- Additions start here ---
 
-# 7. Clean up Helm
-echo "Cleaning up Helm installations and configuration..."
-# Remove Helm binary if it's in a common location like /usr/local/bin
-if command -v helm &> /dev/null; then
-    echo "Attempting to remove Helm binary..."
-    # Check if helm is in a user-writable path or /usr/local/bin
-    HELM_PATH=$(command -v helm)
-    if [[ "$HELM_PATH" == "/usr/local/bin/helm" || "$HELM_PATH" == "$HOME/bin/helm" || "$HELM_PATH" == "$HOME/.local/bin/helm" ]]; then
-        sudo rm -f "$HELM_PATH" || true
-    else
-        echo "Helm binary found at $HELM_PATH, but it's not a common user or local install path. Manual removal might be needed."
-    fi
-fi
-# Remove Helm configuration directories
-rm -rf ~/.helm || true
-rm -rf ~/.cache/helm || true
-rm -rf ~/.config/helm || true
+# # 7. Clean up Helm
+# echo "Cleaning up Helm installations and configuration..."
+# # Remove Helm binary if it's in a common location like /usr/local/bin
+# if command -v helm &> /dev/null; then
+#     echo "Attempting to remove Helm binary..."
+#     # Check if helm is in a user-writable path or /usr/local/bin
+#     HELM_PATH=$(command -v helm)
+#     if [[ "$HELM_PATH" == "/usr/local/bin/helm" || "$HELM_PATH" == "$HOME/bin/helm" || "$HELM_PATH" == "$HOME/.local/bin/helm" ]]; then
+#         sudo rm -f "$HELM_PATH" || true
+#     else
+#         echo "Helm binary found at $HELM_PATH, but it's not a common user or local install path. Manual removal might be needed."
+#     fi
+# fi
+# # Remove Helm configuration directories
+# rm -rf ~/.helm || true
+# rm -rf ~/.cache/helm || true
+# rm -rf ~/.config/helm || true
 
 # 8. Clean up Python CNI-related downloads (assuming common locations)
 echo "Cleaning up Python CNI-related downloads..."
@@ -166,6 +166,8 @@ sudo rm -rf /usr/local/share/man/man1/python3.12.1
 #Also remove source files if you built from /usr/src/Python-3.12.x
 sudo rm -rf /usr/src/Python-3.12.*
 
+
+sudo rm -rf /mnt/data/*
 
 # --- Additions end here ---
 
