@@ -13,15 +13,38 @@
   when: ansible_facts['os_family'] == "RedHat"
   become: yes # Required for package installation
 
+# - name: Ensure Python 3 and pip are installed on Debian-based systems (apt)
+#   ansible.builtin.apt:
+#     name:
+#       - python3
+#       - python3-pip
+#     state: present
+#     update_cache: yes # Ensure package cache is updated
+#   when: ansible_facts['os_family'] == "Debian"
+#   become: yes # Required for package installation
+
 - name: Ensure Python 3 and pip are installed on Debian-based systems (apt)
-  ansible.builtin.apt:
-    name:
-      - python3
-      - python3-pip
-    state: present
-    update_cache: yes # Ensure package cache is updated
+  block:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+      register: apt_update_result
+      ignore_errors: true
+
+    - name: Fail if apt update failed
+      fail:
+        msg: "Failed to update apt cache. Please check network connectivity and repository configuration. Error: {{ apt_update_result.msg }}"
+      when: apt_update_result.failed
+
+    - name: Install python3 and python3-pip
+      ansible.builtin.apt:
+        name:
+          - python3
+          - python3-pip
+        state: present
   when: ansible_facts['os_family'] == "Debian"
-  become: yes # Required for package installation
+  become: yes
+
 
 
 - name: Ensure /usr/bin/python exists (symlink to python3) and report status
