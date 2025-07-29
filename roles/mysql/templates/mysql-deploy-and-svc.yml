@@ -27,6 +27,11 @@ spec:
         ports:
         - containerPort: 3306
           name: mysql
+        readinessProbe:
+          exec:
+            command: ["mysqladmin", "ping"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
         volumeMounts:
         - name: mysql-persistent-storage
           mountPath: /var/lib/mysql
