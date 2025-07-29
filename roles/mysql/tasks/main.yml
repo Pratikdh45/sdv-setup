@@ -16,6 +16,24 @@
     validate_certs: no
   become: true
   become_user: root
+  
+- name: Deploy storage class
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/mysql/templates/storageclass.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
+
+- name: Deploy pv & pvc Playbook
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
 
 - name: MySql db creds
   kubernetes.core.k8s:
@@ -67,23 +85,5 @@
   loop: "{{ mysql_pods.resources }}"
   vars:
     mysql_root_password: "Pa$$W0Rd654#"
-  become: true
-  become_user: root
-
-- name: Deploy storage class
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/storageclass.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
-
-- name: Deploy pv & pvc Playbook
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
   become: true
   become_user: root
