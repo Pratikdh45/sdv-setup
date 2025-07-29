@@ -30,7 +30,7 @@ node_exporter_values:
 # kubeconfig_path: /etc/kubernetes/admin.conf
 # kube_context: "kubernetes-admin@kubernetes"
 # mysql_app_label: "app=mysql"
-mysql_root_password: "Pa$$W0Rd654#"
+mysql_root_password: "Pa$$W0Rd654"
 # new_database_name: "data_vault"
 # new_user_name: "dvuser"
 # new_user_password: "nsdl1234"

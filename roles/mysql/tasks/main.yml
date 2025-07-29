@@ -9,7 +9,6 @@
   become_user: root
 
 
-
 - name: MySql db creds
   kubernetes.core.k8s:
     src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-db-secret.yml"
@@ -48,10 +47,6 @@
   become_user: root
 
 
-# - name: MySQL Configuration Logic
-#   include_tasks: "{{ playbook_dir }}/../roles/mysql/tasks/configure-mysql.yml"
-
-
 - name: Get mysql pod
   kubernetes.core.k8s_info:
     kind: Pod
@@ -78,16 +73,32 @@
   become_user: root
 
 
-- name: Create sdv_data database and user
-  shell: |
-    kubectl exec -n sdv {{ item.metadata.name }} -- \
-    mysql -u root -p'{{ mysql_root_password }}' -e "\
-      CREATE DATABASE IF NOT EXISTS sdv_data;
-      CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234';
-      GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION;
-      FLUSH PRIVILEGES;"
-  loop: "{{ mysql_pods.resources }}"
+
+- name: Log in to MySQL
+  kubernetes.core.k8s_exec:
+    namespace: sdv 
+    pod: "{{ mysql_pod_info.resources[0].metadata.name }}" # Use the pod name found above
+    # command: "mysql -u {{ mysql_user }} -p{{ mysql_password }} {{ mysql_database }}"
+    #     # For security, consider using Kubernetes Secrets for credentials    
+    command: >
+      mysql -u {{ mysql_user }} -p{{ mysql_password }} -e "CREATE DATABASE IF NOT EXISTS {{ mysql_database }};"
   vars:
-    mysql_root_password: "Pa$$W0Rd654#"
+    mysql_user: "root"
+    mysql_password: "Pa$$W0Rd654" # Use a more secure method for production
+    mysql_database: "sdv_data"
   become: true
   become_user: root
+
+# - name: Create sdv_data database and user
+#   shell: |
+#     kubectl exec -n sdv {{ item.metadata.name }} -- \
+#     mysql -u root -p'{{ mysql_root_password }}' -e "\
+#       CREATE DATABASE IF NOT EXISTS sdv_data;
+#       CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'abcd1234';
+#       GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION;
+#       FLUSH PRIVILEGES;"
+#   loop: "{{ mysql_pods.resources }}"
+#   vars:
+#     mysql_root_password: "Pa$$W0Rd654"
+#   become: true
+#   become_user: root
