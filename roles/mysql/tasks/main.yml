@@ -8,15 +8,17 @@
   become: true
   become_user: root
 
-- name: MySql deploy and svc Playbook
+
+
+- name: MySql db creds
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-deploy-and-svc.yml"
+    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-db-secret.yml"
     state: present
     kubeconfig: /etc/kubernetes/admin.conf
     validate_certs: no
   become: true
   become_user: root
-  
+
 - name: Deploy storage class
   kubernetes.core.k8s:
     src: "{{ playbook_dir }}/../roles/mysql/templates/storageclass.yml"
@@ -25,6 +27,7 @@
     validate_certs: no
   become: true
   become_user: root
+
 
 - name: Deploy pv & pvc Playbook
   kubernetes.core.k8s:
@@ -35,14 +38,15 @@
   become: true
   become_user: root
 
-- name: MySql db creds
+- name: MySql deploy and svc Playbook
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-db-secret.yml"
+    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-deploy-and-svc.yml"
     state: present
     kubeconfig: /etc/kubernetes/admin.conf
     validate_certs: no
   become: true
   become_user: root
+
 
 # - name: MySQL Configuration Logic
 #   include_tasks: "{{ playbook_dir }}/../roles/mysql/tasks/configure-mysql.yml"
