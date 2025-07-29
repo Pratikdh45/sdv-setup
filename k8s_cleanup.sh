@@ -59,11 +59,9 @@ sudo rm -rf /etc/kubernetes/ /var/lib/kubelet/ /var/lib/etcd/ /var/lib/cni/
 sudo rm -rf /run/kubernetes/ /var/run/kubernetes/ /var/run/calico
 echo "  Deleting containerd directory..."
 sudo rm -rf /var/lib/containerd
-echo "  Deleting application data..."
-sudo rm -rf /mnt/data/*
-echo "  Deleting manually installed Python..."
-sudo rm -rf /usr/local/bin/python /usr/local/bin/python3.12 /usr/local/lib/python3.12 /usr/local/include/python3.12
-sudo rm -rf /usr/src/Python-3.12.*
+# echo "  Deleting manually installed Python..."
+# sudo rm -rf /usr/local/bin/python /usr/local/bin/python3.12 /usr/local/lib/python3.12 /usr/local/include/python3.12
+# sudo rm -rf /usr/src/Python-3.12.*
 
 echo "  Removing APT repositories and keys..."
 sudo rm -f /etc/apt/keyrings/docker-apt-keyring.asc
@@ -85,6 +83,4 @@ echo "----------------------------------------------------"
 
 # --- Phase 6: System Reboot ---
 echo "PHASE 6: Cleanup complete."
-echo "Rebooting the system now to ensure a clean state."
 echo "Thank you! See you in a minute :)"
-sudo reboot
