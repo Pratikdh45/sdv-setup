@@ -23,39 +23,6 @@
   when: ansible_facts['os_family'] == "Debian"
   become: yes # Required for package installation
 
-# - name: Ensure Python 3 and pip are installed on Debian-based systems (apt)
-#   block:
-#     - name: Run apt-get update to get raw error output
-#       ansible.builtin.shell: "apt-get update -y"
-#       register: apt_update_raw
-#       ignore_errors: true
-#       changed_when: false
-
-#     - name: Fail with detailed error if apt-get update failed
-#       ansible.builtin.fail:
-#         msg: |
-#           Failed to update apt cache. This is a critical error.
-#           Please check network connectivity and repository configuration on the server.
-#           ------------------- APT ERROR -------------------
-#           STDOUT:
-#           {{ apt_update_raw.stdout | default('(empty)') }}
-
-#           STDERR:
-#           {{ apt_update_raw.stderr | default('(empty)') }}
-#           -------------------------------------------------
-#       when: apt_update_raw.rc != 0
-
-#     - name: Install python3 and python3-pip
-#       ansible.builtin.apt:
-#         name:
-#           - python3
-#           - python3-pip
-#         state: present
-#   when: ansible_facts['os_family'] == "Debian"
-#   become: yes
-
-
-
 - name: Ensure /usr/bin/python exists (symlink to python3) and report status
   ansible.builtin.raw: |
     if [ ! -f /usr/bin/python ] && [ -f /usr/bin/python3 ]; then
@@ -100,14 +67,3 @@
 - name: Set environment to use virtualenv for future tasks
   set_fact:
     ansible_python_interpreter: /opt/ansible_venv/bin/python
-
-
-#----------------------------------------------------------------
-
-    # elif [ -f /usr/bin/python ]; then
-    #   PYTHON_LOC=$(readlink -f /usr/bin/python)
-    #   PYTHON_VER=$(${PYTHON_LOC} --version 2>&1)
-    #   echo "Python symlink already exists. Python location: ${PYTHON_LOC}, Version: ${PYTHON_VER}"
-    # else
-    #   echo "Warning: /usr/bin/python3 not found. Could not create /usr/bin/python symlink."
-    # fi

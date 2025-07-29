@@ -1,6 +1,17 @@
 #!/bin/bash
 
+# --- Log Setup ---
+LOG_DIR="$(dirname "$0")/logs"
+TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+LOG_FILE="$LOG_DIR/cleanup-$TIMESTAMP.log"
+
+mkdir -p "$LOG_DIR"
+
+# Redirect all output to both the log file and the console
+exec &> >(tee -a "$LOG_FILE")
+
 echo "Starting full Kubernetes and application cleanup..."
+echo "Log file for this run: $LOG_FILE"
 echo "----------------------------------------------------"
 
 # --- Phase 1: Application & Kubernetes Resource Cleanup ---

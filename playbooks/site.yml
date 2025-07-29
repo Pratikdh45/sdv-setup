@@ -3,6 +3,16 @@
   become: true
   become_user: root
   gather_facts: true
+
+  pre_tasks:
+    - name: Create logs directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../logs"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
   roles:
     - OSdetection
     - python
