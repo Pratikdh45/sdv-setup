@@ -13,46 +13,46 @@
   when: ansible_facts['os_family'] == "RedHat"
   become: yes # Required for package installation
 
-# - name: Ensure Python 3 and pip are installed on Debian-based systems (apt)
-#   ansible.builtin.apt:
-#     name:
-#       - python3
-#       - python3-pip
-#     state: present
-#     update_cache: yes # Ensure package cache is updated
-#   when: ansible_facts['os_family'] == "Debian"
-#   become: yes # Required for package installation
-
 - name: Ensure Python 3 and pip are installed on Debian-based systems (apt)
-  block:
-    - name: Run apt-get update to get raw error output
-      ansible.builtin.shell: "apt-get update -y"
-      register: apt_update_raw
-      ignore_errors: true
-      changed_when: false
-
-    - name: Fail with detailed error if apt-get update failed
-      ansible.builtin.fail:
-        msg: |
-          Failed to update apt cache. This is a critical error.
-          Please check network connectivity and repository configuration on the server.
-          ------------------- APT ERROR -------------------
-          STDOUT:
-          {{ apt_update_raw.stdout | default('(empty)') }}
-
-          STDERR:
-          {{ apt_update_raw.stderr | default('(empty)') }}
-          -------------------------------------------------
-      when: apt_update_raw.rc != 0
-
-    - name: Install python3 and python3-pip
-      ansible.builtin.apt:
-        name:
-          - python3
-          - python3-pip
-        state: present
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-pip
+    state: present
+    update_cache: yes # Ensure package cache is updated
   when: ansible_facts['os_family'] == "Debian"
-  become: yes
+  become: yes # Required for package installation
+
+# - name: Ensure Python 3 and pip are installed on Debian-based systems (apt)
+#   block:
+#     - name: Run apt-get update to get raw error output
+#       ansible.builtin.shell: "apt-get update -y"
+#       register: apt_update_raw
+#       ignore_errors: true
+#       changed_when: false
+
+#     - name: Fail with detailed error if apt-get update failed
+#       ansible.builtin.fail:
+#         msg: |
+#           Failed to update apt cache. This is a critical error.
+#           Please check network connectivity and repository configuration on the server.
+#           ------------------- APT ERROR -------------------
+#           STDOUT:
+#           {{ apt_update_raw.stdout | default('(empty)') }}
+
+#           STDERR:
+#           {{ apt_update_raw.stderr | default('(empty)') }}
+#           -------------------------------------------------
+#       when: apt_update_raw.rc != 0
+
+#     - name: Install python3 and python3-pip
+#       ansible.builtin.apt:
+#         name:
+#           - python3
+#           - python3-pip
+#         state: present
+#   when: ansible_facts['os_family'] == "Debian"
+#   become: yes
 
 
 
