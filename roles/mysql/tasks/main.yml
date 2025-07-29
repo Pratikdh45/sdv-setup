@@ -66,9 +66,13 @@
     namespace: sdv
     kubeconfig: /etc/kubernetes/admin.conf
   register: mysql_pods
-  until: mysql_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
-  retries: 10
-  delay: 15
+  until:
+    - mysql_pods.resources | length > 0
+    - mysql_pods.resources[0].status.containerStatuses is defined
+    - mysql_pods.resources[0].status.containerStatuses | length > 0
+    - mysql_pods.resources[0].status.containerStatuses[0].ready
+  retries: 30
+  delay: 10
   become: true
   become_user: root
 
