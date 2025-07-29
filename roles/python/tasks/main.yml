@@ -13,36 +13,41 @@
   when: ansible_facts['os_family'] == "RedHat"
   become: yes # Required for package installation
 
-- name: Ensure Python prerequisites are installed on Debian-based systems
-  block:
-    - name: Run apt-get update to get raw error output
-      ansible.builtin.shell: "apt-get update -y"
-      register: apt_update_raw
-      ignore_errors: true
-      changed_when: false
+- name: Ensure Python 3 and pip are installed on Debian-based systems (apt)
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-pip
+    state: present
+    update_cache: yes # Ensure package cache is updated
+  when: ansible_facts['os_family'] == "Debian"
+  become: yes # Required for package installation
 
-    - name: Fail with detailed error if apt-get update failed
-      ansible.builtin.fail:
-        msg: |
-          Failed to update apt cache. This is a critical error.
-          Please check network connectivity and repository configuration on the server.
-          ------------------- APT ERROR -------------------
-          STDOUT:
-          {{ apt_update_raw.stdout | default('(empty)') }}
 
-          STDERR:
-          {{ apt_update_raw.stderr | default('(empty)') }}
-          -------------------------------------------------
-      when: apt_update_raw.rc != 0
+- name: Ensure /usr/bin/python exists (symlink to python3) and report status
+  ansible.builtin.raw: |
+    if [ ! -f /usr/bin/python ] && [ -f /usr/bin/python3 ]; then
+      ln -s /usr/bin/python3 /usr/bin/python
+      PYTHON_LOC=$(which python3)
+      PYTHON_VER=$(python3 --version 2>&1)
+      echo "Python symlink created. Python location: ${PYTHON_LOC}, Version: ${PYTHON_VER}"
+    elif [ -f /usr/bin/python ]; then
+      echo "Python symlink already exists"
+    else
+      echo "Python3 not found"
+    fi
 
-    - name: Install Python packages (python3, pip, venv)
-      ansible.builtin.apt:
-        name:
-          - python3
-          - python3-pip
-          - python3-venv
-        state: present
-        update_cache: no # We already updated manually
+  changed_when: false # <--- Changed this to always be false to prevent the 'stdout' undefined error
+  become: yes
+  # check_mode: no # raw module usually bypasses check_mode, but can be added for explicit clarity
+
+
+
+- name: Ensure python3-venv is installed on Debian-based systems
+  ansible.builtin.apt:
+    name: "python3-venv"
+    state: present
+    update_cache: yes
   when: ansible_facts['os_family'] == "Debian"
   become: yes
 
