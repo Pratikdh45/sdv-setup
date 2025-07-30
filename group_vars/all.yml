@@ -28,7 +28,4 @@ node_exporter_values:
 
 
 mysql_root_password: "Pa$$W0Rd654"
-# localhost: 127.0.0.1
-# mysql_port: 3306
-# mysql_user_password: "nsdl1234"
-# mysql_user_name: "dvuser"
+# 
