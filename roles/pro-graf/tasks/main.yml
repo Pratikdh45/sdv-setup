@@ -43,8 +43,8 @@
    kind: Secret
    name: grafana
    namespace: "{{ pro_graf_release_namespace }}"
-   register: grafana_secret
    kubeconfig: /etc/kubernetes/admin.conf
+  register: grafana_secret
   become: true
   become_user: root
 
