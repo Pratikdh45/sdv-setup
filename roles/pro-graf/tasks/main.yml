@@ -48,14 +48,16 @@
   become: true
   become_user: root
 
-- name: Debug Grafana Secret Content
-  debug:
-    var: grafana_secret
-
-- name: Decode Grafana admin password
-  set_fact:
-    grafana_admin_password_decoded: "{{ grafana_secret.resources[0].data.admin-password | b64decode }}"
+- name: Decode Grafana admin password using shell
+  ansible.builtin.shell: echo "{{ grafana_secret.resources[0].data['admin-password'] }}" | base64 --decode
+  register: decoded_password_result
+  changed_when: false # This command doesn't change system state
+  # Ensure this task only runs if the secret data is available
+  when: grafana_secret.resources is defined and grafana_secret.resources | length > 0 and 'admin-password' in grafana_secret.resources[0].data
 
 - name: Display Decoded Grafana admin password
   debug:
-    msg: "Grafana admin password: {{ grafana_admin_password_decoded }}"
+    msg: "Grafana admin password: {{ decoded_password_result.stdout }}"
+  when: decoded_password_result is defined and
+      decoded_password_result.stdout is defined and
+      decoded_password_result.stdout | length > 0
