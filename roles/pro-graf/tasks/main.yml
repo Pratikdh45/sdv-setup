@@ -52,9 +52,10 @@
   debug:
     var: grafana_secret
 
-- name: Display Grafana admin password
+- name: Decode Grafana admin password
+  set_fact:
+    grafana_admin_password_decoded: "{{ grafana_secret.resources[0].data.admin-password | b64decode }}"
+
+- name: Display Decoded Grafana admin password
   debug:
-    msg: "Grafana admin password: {{ grafana_secret.resources[0].data.admin-password | b64decode }}"
-    # kubeconfig: /etc/kubernetes/admin.conf
-  # become: true
-  # become_user: root
+  msg: "Grafana admin password: {{ grafana_admin_password_decoded }}"
