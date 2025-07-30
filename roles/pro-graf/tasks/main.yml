@@ -1,4 +1,21 @@
 ---
+- name: Create hostpath directory for Prometheus
+  ansible.builtin.file:
+    path: "/mnt/data/prometheus"
+    state: directory
+    mode: '0755'
+  become: true
+  become_user: root
+
+- name: Create hostpath directory for Grafana
+  ansible.builtin.file:
+    path: "/mnt/data/grafana"
+    state: directory
+    mode: '0755'
+  become: true
+  become_user: root
+
+
 - name: Add Prometheus Helm repository
   kubernetes.core.helm_repository:
     name: "{{ pro_graf_prometheus_repo_name }}"
@@ -15,6 +32,15 @@
   become: true
   become_user: root
 
+- name: Deploy  pvc for Prometheus
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/pro-graf/templates/prometheus-pv.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
+
 - name: Install Prometheus
   kubernetes.core.helm:
     name: "{{ pro_graf_prometheus_chart_name }}"
@@ -25,7 +51,22 @@
       server:
         service:
           type: "{{ pro_graf_prometheus_server_service_type }}"
+      persistentVolume:
+        enabled: true
+        storageClassName: sdv-local-storage
+        accessModes:
+          - ReadWriteOnce
+        size: "1Gi"
     kubeconfig: /etc/kubernetes/admin.conf
+  become: true
+  become_user: root
+
+- name: Deploy  pvc for Grafana
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/pro-graf/templates/grafana-pv.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
   become: true
   become_user: root
 
@@ -35,6 +76,9 @@
     chart_ref: "{{ pro_graf_grafana_chart_ref }}"
     release_namespace: "{{ pro_graf_release_namespace }}"
     kubeconfig: /etc/kubernetes/admin.conf
+    values:
+      service:
+        type: "{{ pro_graf_grafana_server_service_type }}"
   become: true
   become_user: root
 
@@ -73,10 +117,3 @@
       decoded_password_result.stdout | length > 0
   become: true
   become_user: root
-
-# - name: Display Decoded Grafana admin password
-#   debug:
-#     msg: "Grafana admin password: {{ decoded_password_result.stdout }}"
-#   when: decoded_password_result is defined and
-#       decoded_password_result.stdout is defined and
-#       decoded_password_result.stdout | length > 0

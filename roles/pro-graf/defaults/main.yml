@@ -16,3 +16,4 @@
   pro_graf_release_namespace: monitoring
 # Prometheus server service type
   pro_graf_prometheus_server_service_type: NodePort
+  pro_graf_grafana_server_service_type: NodePort

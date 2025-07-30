@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prometheus-pv
+  namespace: monitoring
+  labels:
+    type: local
+spec:
+  storageClassName: sdv-local-storage # Must match your StorageClass name
+  capacity:
+    storage: 1Gi # Must be equal to or greater than the PVC request
+  accessModes:
+   - ReadWriteOnce # Must match the PVC request
+  hostPath:
+  path: "/mnt/data/prometheus" # This path must exist on your VM
+  type: DirectoryOrCreate # Kubernetes will create this directory if it doesn't exist
