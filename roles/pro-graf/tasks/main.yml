@@ -55,9 +55,28 @@
   # Ensure this task only runs if the secret data is available
   when: grafana_secret.resources is defined and grafana_secret.resources | length > 0 and 'admin-password' in grafana_secret.resources[0].data
 
-- name: Display Decoded Grafana admin password
-  debug:
-    msg: "Grafana admin password: {{ decoded_password_result.stdout }}"
+- name: Ensure logs directory exists
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/../logs"
+    state: directory
+    mode: '0755'
+  become: true
+  become_user: root
+
+- name: Save decoded Grafana admin password to Logs folder
+  ansible.builtin.copy:
+    content: "{{ decoded_password_result.stdout }}"
+    dest: "{{ playbook_dir }}/../logs/grafana_admin_password.txt"
+    mode: '0600'
   when: decoded_password_result is defined and
       decoded_password_result.stdout is defined and
       decoded_password_result.stdout | length > 0
+  become: true
+  become_user: root
+
+# - name: Display Decoded Grafana admin password
+#   debug:
+#     msg: "Grafana admin password: {{ decoded_password_result.stdout }}"
+#   when: decoded_password_result is defined and
+#       decoded_password_result.stdout is defined and
+#       decoded_password_result.stdout | length > 0
