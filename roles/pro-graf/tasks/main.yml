@@ -58,4 +58,4 @@
 
 - name: Display Decoded Grafana admin password
   debug:
-  msg: "Grafana admin password: {{ grafana_admin_password_decoded }}"
+    msg: "Grafana admin password: {{ grafana_admin_password_decoded }}"
