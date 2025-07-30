@@ -23,6 +23,9 @@
 - name: Step2:Install pre-requisite packages
   include_tasks: "{{ playbook_dir }}/../roles/k8s_setup/templates/prerequisites.yml"
 
+- name: Install Helm
+  include_tasks: "{{ playbook_dir }}/../roles/k8s_setup/templates/helm-install.yml"
+  
 - name: Debug vars
   debug:
     var: k8s_packages

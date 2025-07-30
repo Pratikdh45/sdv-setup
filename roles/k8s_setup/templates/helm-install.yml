@@ -1,0 +1,21 @@
+- name: Download Helm installation script
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    dest: /tmp/get_helm.sh
+    mode: '0755' # Make it executable
+  become: true # Requires root privileges to write to /tmp
+  become_user: root
+    
+- name: Run Helm installation script
+  ansible.builtin.command: '/tmp/get_helm.sh'    
+  args:
+    creates: /usr/local/bin/helm # Only run if helm is not already installed
+  become: true # Requires root privileges to install to /usr/local/bin
+  become_user: root
+   
+- name: Clean up Helm installation script
+  ansible.builtin.file:
+    path: /tmp/get_helm.sh
+    state: absent
+  become: true # Requires root privileges to delete from /tmp
+  become_user: root
