@@ -1,0 +1,18 @@
+---
+# defaults file for pro-graf role
+# Helm repository details
+  pro_graf_prometheus_repo_name: prometheus-community
+  pro_graf_prometheus_repo_url: "https://prometheus-community.github.io/helm-charts"
+  pro_graf_grafana_repo_name: grafana
+  pro_graf_grafana_repo_url: "https://grafana.github.io/helm-charts"
+ 
+# Helm chart details
+  pro_graf_prometheus_chart_name: prometheus
+  pro_graf_prometheus_chart_ref: "{{ pro_graf_prometheus_repo_name }}/{{ pro_graf_prometheus_chart_name }}"
+  pro_graf_grafana_chart_name: grafana
+  pro_graf_grafana_chart_ref: "{{ pro_graf_grafana_repo_name }}/{{ pro_graf_grafana_chart_name }}" 
+
+# Kubernetes namespace for deployment
+  pro_graf_release_namespace: monitoring
+# Prometheus server service type
+  pro_graf_prometheus_server_service_type: NodePort

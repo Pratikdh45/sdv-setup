@@ -20,34 +20,34 @@
   become: true
   become_user: root
 
-- name: Deploy Node Exporter DaemonSet
-  kubernetes.core.k8s:
-    # This path is correct because playbook_dir is sdv-setup/playbooks/
-    # ../ takes it to sdv-setup/, then /roles/ takes it to sdv-setup/roles/
-    src: "{{ playbook_dir }}/../roles/node_exporter/node-exporter-daemonset.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+# - name: Deploy Node Exporter DaemonSet
+#   kubernetes.core.k8s:
+#     # This path is correct because playbook_dir is sdv-setup/playbooks/
+#     # ../ takes it to sdv-setup/, then /roles/ takes it to sdv-setup/roles/
+#     src: "{{ playbook_dir }}/../roles/node_exporter/node-exporter-daemonset.yml"
+#     state: present
+#     kubeconfig: /etc/kubernetes/admin.conf
+#     validate_certs: no
+#   become: true
+#   become_user: root
 
-- name: Deploy Prometheus Playbook
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/prometheus/prometheus-deployment.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+# - name: Deploy Prometheus Playbook
+#   kubernetes.core.k8s:
+#     src: "{{ playbook_dir }}/../roles/prometheus/prometheus-deployment.yml"
+#     state: present
+#     kubeconfig: /etc/kubernetes/admin.conf
+#     validate_certs: no
+#   become: true
+#   become_user: root
 
-- name: Deploy Grafana
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/grafana/grafana-deployment.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+# - name: Deploy Grafana
+#   kubernetes.core.k8s:
+#     src: "{{ playbook_dir }}/../roles/grafana/grafana-deployment.yml"
+#     state: present
+#     kubeconfig: /etc/kubernetes/admin.conf
+#     validate_certs: no
+#   become: true
+#   become_user: root
 
 # - name: Deploy Nginx Pod
 #   kubernetes.core.k8s:

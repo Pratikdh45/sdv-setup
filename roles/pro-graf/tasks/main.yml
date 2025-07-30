@@ -1,0 +1,42 @@
+---
+- name: Add Prometheus Helm repository
+  community.kubernetes.helm_repository:
+  
+- name: "{{ pro_graf_prometheus_repo_name }}"
+  repo_url: "{{ pro_graf_prometheus_repo_url }}"
+     
+- name: Add Grafana Helm repository
+  community.kubernetes.helm_repository:
+
+- name: "{{ pro_graf_grafana_repo_name }}"
+  repo_url: "{{ pro_graf_grafana_repo_url }}"
+
+- name: Install Prometheus
+  community.kubernetes.helm:
+   name: "{{ pro_graf_prometheus_chart_name }}"
+   chart_ref: "{{ pro_graf_prometheus_chart_ref }}"
+   release_namespace: "{{ pro_graf_release_namespace }}"
+   create_namespace: yes
+   values:
+    server:
+     service:
+       type: "{{ pro_graf_prometheus_server_service_type }}"
+
+
+- name: Install Grafana
+  community.kubernetes.helm:
+   name: "{{ pro_graf_grafana_chart_name }}"
+   chart_ref: "{{ pro_graf_grafana_chart_ref }}"
+   release_namespace: "{{ pro_graf_release_namespace }}"
+  
+- name: Get Grafana admin password
+  kubernetes.core.k8s_info:
+   kind: Secret
+   name: grafana
+   namespace: "{{ pro_graf_release_namespace }}"
+   register: grafana_secret
+
+- name: Display Grafana admin password
+  debug:
+   msg: "Grafana admin password: {{ grafana_secret.resources[0].data.admin-password | 
+      b64decode }}"
