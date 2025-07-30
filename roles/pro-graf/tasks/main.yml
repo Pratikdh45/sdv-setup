@@ -44,7 +44,7 @@
    name: grafana
    namespace: "{{ pro_graf_release_namespace }}"
    register: grafana_secret
-  kubeconfig: /etc/kubernetes/admin.conf
+   kubeconfig: /etc/kubernetes/admin.conf
   become: true
   become_user: root
 
@@ -52,6 +52,6 @@
   ansible.builtin.debug:
     # msg: "Grafana admin password: {{ grafana_secret.resources[0].data.GF_SECURITY_ADMIN_PASSWORD | b64decode }}"
     msg: "Grafana admin password: {{ grafana_secret.resources[0].data.admin-password | b64decode }}"
-  kubeconfig: /etc/kubernetes/admin.conf
+    kubeconfig: /etc/kubernetes/admin.conf
   become: true
   become_user: root
