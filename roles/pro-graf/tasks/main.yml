@@ -52,7 +52,7 @@
 
 - name: Deploy  pvc for Prometheus
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/pro-graf/templates/prometheus-pv.yml"
+    src: "{{ playbook_dir }}/../roles/pro-graf/templates/prometheus-pv.yml.j2"
     state: present
     kubeconfig: /etc/kubernetes/admin.conf
     validate_certs: no
@@ -61,7 +61,7 @@
 
 - name: Deploy  pvc for Alertmanager
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/pro-graf/templates/alertmanager-pv.yml"
+    src: "{{ playbook_dir }}/../roles/pro-graf/templates/alertmanager-pv.yml.j2"
     state: present
     kubeconfig: /etc/kubernetes/admin.conf
     validate_certs: no
@@ -70,7 +70,7 @@
 
 - name: Deploy  pvc for Grafana
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/pro-graf/templates/grafana-pv.yml"
+    src: "{{ playbook_dir }}/../roles/pro-graf/templates/grafana-pv.yml.j2"
     state: present
     kubeconfig: /etc/kubernetes/admin.conf
     validate_certs: no
