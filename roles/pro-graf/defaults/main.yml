@@ -14,6 +14,7 @@
 
 # Kubernetes namespace for deployment
   pro_graf_release_namespace: monitoring
+  storageClassName: sdv-local-storage
 # Prometheus server service type
   pro_graf_prometheus_server_service_type: NodePort
   pro_graf_grafana_server_service_type: NodePort

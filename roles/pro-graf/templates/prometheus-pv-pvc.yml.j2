@@ -5,7 +5,7 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: sdv-local-storage # Must match your StorageClass name
+  storageClassName: {{ storageClassName }} # Must match your StorageClass name
   capacity:
     storage: 8Gi # Must be equal to or greater than the PVC request
   accessModes:
@@ -23,3 +23,17 @@ spec:
                 - "{{ node_name }}"   # This must resolve to the node name where volume exists
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
+
+----
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-pvc
+  namespace: {{ pro_graf_release_namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: {{ storageClassName }}
