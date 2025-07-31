@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: alertmanager-pv
+  labels:
+    type: local
+spec:
+  storageClassName: sdv-local-storage # Must match your StorageClass name
+  capacity:
+    storage: 2Gi # Must be equal to or greater than the PVC request
+  accessModes:
+   - ReadWriteOnce # Must match the PVC request
+  hostPath:
+    path: "/mnt/data/alertmanager" # This path must exist on your VM
+    type: DirectoryOrCreate
+  kubeconfig: /etc/kubernetes/admin.conf
+become: true
+become_user: root
