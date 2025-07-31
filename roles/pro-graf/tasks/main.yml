@@ -23,6 +23,7 @@
   become: true
   become_user: root
 
+
 - name: Add Prometheus Helm repository
   kubernetes.core.helm_repository:
     name: "{{ pro_graf_prometheus_repo_name }}"
