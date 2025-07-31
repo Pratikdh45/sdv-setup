@@ -41,6 +41,20 @@
   become: true
   become_user: root
 
+- name: Deploy  pvc for Grafana
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/pro-graf/templates/grafana-pv.yml"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
+
+- name: Wait for 15 sec before proceeding
+  ansible.builtin.pause:
+    seconds: 15
+  when: k8s_is_ready_or_initialized
+
 - name: Install Prometheus
   kubernetes.core.helm:
     name: "{{ pro_graf_prometheus_chart_name }}"
@@ -56,19 +70,11 @@
         storageClassName: sdv-local-storage
         accessModes:
           - ReadWriteOnce
-        size: "1Gi"
+        size: "8Gi"
     kubeconfig: /etc/kubernetes/admin.conf
   become: true
   become_user: root
 
-- name: Deploy  pvc for Grafana
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/pro-graf/templates/grafana-pv.yml"
-    state: present
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
 
 - name: Install Grafana
   kubernetes.core.helm:
@@ -79,6 +85,13 @@
     values:
       service:
         type: "{{ pro_graf_grafana_server_service_type }}"
+      persistentVolume:
+        enabled: true
+        storageClassName: sdv-local-storage
+        accessModes:
+          - ReadWriteOnce
+        size: "8Gi"
+    kubeconfig: /etc/kubernetes/admin.conf
   become: true
   become_user: root
 
