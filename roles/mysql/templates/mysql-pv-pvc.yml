@@ -8,7 +8,7 @@ metadata:
 spec:
   storageClassName: sdv-local-storage
   capacity:
-    storage: 1Gi ###Change as per requirement
+    storage: 4Gi ###Change as per requirement
   accessModes:
     - ReadWriteOnce 
   hostPath:
@@ -33,4 +33,4 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi ###Change as per requirement and according to above PV storage size 
+      storage: 4Gi ###Change as per requirement and according to above PV storage size 
