@@ -13,6 +13,16 @@ spec:
   hostPath:
     path: "/mnt/data/prometheus" # This path must exist on your VM
     type: DirectoryOrCreate # Kubernetes will create this directory if it doesn't exist
-  kubeconfig: /etc/kubernetes/admin.conf
-become: true
-become_user: root
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - "{{ node_name }}"   # This must resolve to the node name where volume exists
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+#   kubeconfig: /etc/kubernetes/admin.conf
+# become: true
+# become_user: root

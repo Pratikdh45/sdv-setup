@@ -1,4 +1,14 @@
 ---
+- name: Get Kubernetes node name from IP
+  shell: "kubectl get nodes -o wide | grep {{ private_ip }} | awk '{print $1}'"
+  register: node_name_result
+
+- name: Set node_name fact
+  set_fact:
+    node_name: "{{ node_name_result.stdout }}"
+
+
+
 - name: Create hostpath directory for Prometheus
   ansible.builtin.file:
     path: "/mnt/data/prometheus"
