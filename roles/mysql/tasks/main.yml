@@ -9,6 +9,45 @@
   become_user: root
 
 
+#######################
+
+
+
+
+- name: Get Kubernetes node name
+  command: kubectl get nodes -o jsonpath='{.items[0].metadata.name}'
+  register: k8s_node_name
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+ 
+- name: Debug - Kubernetes node name
+  debug:
+    var: k8s_node_name.stdout
+ 
+- name: Debug - Full kubectl get nodes output
+  command: kubectl get nodes
+  register: kubectl_get_nodes_full_output
+  changed_when: false
+  failed_when: false
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+ 
+- name: Debug - Print full kubectl get nodes output
+  debug:
+    var: kubectl_get_nodes_full_output.stdout_lines
+ 
+ 
+- name: Debug - Kubernetes node name used for PV
+  debug:
+    var: k8s_node_name.stdout
+
+
+
+#######################
+
+
+
 - name: MySql db creds
   kubernetes.core.k8s:
     src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-db-secret.yml"
