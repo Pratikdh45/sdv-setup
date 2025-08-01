@@ -5,14 +5,14 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: sdv-local-storage # Must match your StorageClass name
+  storageClassName: sdv-local-storage 
   capacity:
     storage: 4Gi 
   accessModes:
    - ReadWriteOnce 
   hostPath:
-    path: "/mnt/data/prometheus" # This path must exist on your VM
-    type: DirectoryOrCreate # Kubernetes will create this directory if it doesn't exist
+    path: "/mnt/data/prometheus" 
+    type: DirectoryOrCreate 
   nodeAffinity:
     required:
       nodeSelectorTerms:
