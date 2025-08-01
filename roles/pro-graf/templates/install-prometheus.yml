@@ -1,0 +1,30 @@
+- name: Install Prometheus
+  kubernetes.core.helm:
+    name: "{{ pro_graf_prometheus_chart_name }}"
+    chart_ref: "{{ pro_graf_prometheus_chart_ref }}"
+    release_namespace: "{{ pro_graf_release_namespace }}"
+    create_namespace: yes
+    values:
+      server:
+        service:
+          type: "{{ pro_graf_prometheus_server_service_type }}"
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      persistence:
+        enabled: true
+        storageClassName: sdv-local-storage
+        accessModes:
+          - ReadWriteOnce
+        size: "4Gi"
+      alertmanger:
+        persistence:
+          enabled: true
+          storageClassName: sdv-local-storage
+          accessModes:
+            - ReadWriteOnce
+          size: "4Gi"
+    kubeconfig: /etc/kubernetes/admin.conf
+  become: true
+  become_user: root
