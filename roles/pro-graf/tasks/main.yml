@@ -72,7 +72,7 @@
 
 - name: Deploy  pv & pvc for Prometheus
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/pro-graf/templates/prometheus-pv-pvc.yml.j2"
+    resource_definition: "{{ lookup('template', 'prometheus-pv-pvc.yml.j2') }}"
     state: present
     namespace: monitoring
     kubeconfig: /etc/kubernetes/admin.conf
@@ -82,7 +82,7 @@
 
 - name: Deploy  pv & pvc for Alertmanager
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/pro-graf/templates/alertmanager-pv-pvc.yml.j2"
+    resource_definition: "{{ lookup('template', 'alertmanager-pv-pvc.yml.j2') }}"
     state: present
     namespace: monitoring
     kubeconfig: /etc/kubernetes/admin.conf
@@ -92,7 +92,7 @@
 
 - name: Deploy  pv & pvc for Grafana
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/pro-graf/templates/grafana-pv-pvc.yml.j2"
+    resource_definition: "{{ lookup('template', 'grafana-pv-pvc.yml.j2') }}"
     state: present
     namespace: monitoring
     kubeconfig: /etc/kubernetes/admin.conf

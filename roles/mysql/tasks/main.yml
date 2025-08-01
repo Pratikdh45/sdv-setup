@@ -87,46 +87,46 @@
   become_user: root
 
 
-# - name: Get mysql pod
-#   kubernetes.core.k8s_info:
-#     kind: Pod
-#     label_selectors:
-#       - app=mysql
-#     namespace: sdv
-#     kubeconfig: /etc/kubernetes/admin.conf
-#   register: mysql_pods
-#   become: true
-#   become_user: root
+- name: Get mysql pod
+  kubernetes.core.k8s_info:
+    kind: Pod
+    label_selectors:
+      - app=mysql
+    namespace: sdv
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: mysql_pods
+  become: true
+  become_user: root
 
-# - name: Wait for MySQL pod to be ready
-#   kubernetes.core.k8s_info:
-#     kind: Pod
-#     label_selectors:
-#       - app=mysql
-#     namespace: sdv
-#     kubeconfig: /etc/kubernetes/admin.conf
-#   register: mysql_pods
-#   until:
-#     - mysql_pods.resources | length > 0
-#     - mysql_pods.resources[0].status.containerStatuses is defined
-#     - mysql_pods.resources[0].status.containerStatuses | length > 0
-#     - mysql_pods.resources[0].status.containerStatuses[0].ready
-#   retries: 30
-#   delay: 10
-#   become: true
-#   become_user: root
+- name: Wait for MySQL pod to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    label_selectors:
+      - app=mysql
+    namespace: sdv
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: mysql_pods
+  until:
+    - mysql_pods.resources | length > 0
+    - mysql_pods.resources[0].status.containerStatuses is defined
+    - mysql_pods.resources[0].status.containerStatuses | length > 0
+    - mysql_pods.resources[0].status.containerStatuses[0].ready
+  retries: 30
+  delay: 10
+  become: true
+  become_user: root
 
 
-# - name: Create sdv_data database and user
-#   shell: |
-#     kubectl exec -n sdv {{ item.metadata.name }} -- \
-#     mysql -h '127.0.0.1' -P '3306' -u root -p'{{ mysql_root_password }}' -e "\
-#       CREATE DATABASE IF NOT EXISTS sdv_data;
-#       CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'nsdl1234';
-#       GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION;
-#       FLUSH PRIVILEGES;"
-#   loop: "{{ mysql_pods.resources }}"
-#   vars:
-#     mysql_root_password: "Pa$$W0Rd654"
-#   become: true
-#   become_user: root
+- name: Create sdv_data database and user
+  shell: |
+    kubectl exec -n sdv {{ item.metadata.name }} -- \
+    mysql -h '127.0.0.1' -P '3306' -u root -p'{{ mysql_root_password }}' -e "\
+      CREATE DATABASE IF NOT EXISTS sdv_data;
+      CREATE USER IF NOT EXISTS 'sdvuser'@'%' IDENTIFIED BY 'nsdl1234';
+      GRANT ALL PRIVILEGES ON *.* TO 'sdvuser'@'%' WITH GRANT OPTION;
+      FLUSH PRIVILEGES;"
+  loop: "{{ mysql_pods.resources }}"
+  vars:
+    mysql_root_password: "Pa$$W0Rd654"
+  become: true
+  become_user: root
