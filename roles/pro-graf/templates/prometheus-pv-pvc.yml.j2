@@ -7,9 +7,9 @@ metadata:
 spec:
   storageClassName: sdv-local-storage # Must match your StorageClass name
   capacity:
-    storage: 4Gi # Must be equal to or greater than the PVC request
+    storage: 4Gi 
   accessModes:
-   - ReadWriteOnce # Must match the PVC request
+   - ReadWriteOnce 
   hostPath:
     path: "/mnt/data/prometheus" # This path must exist on your VM
     type: DirectoryOrCreate # Kubernetes will create this directory if it doesn't exist

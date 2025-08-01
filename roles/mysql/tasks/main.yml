@@ -69,7 +69,7 @@
 
 - name: Deploy pv & pvc Playbook
   kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml"
+    src: "{{ playbook_dir }}/../roles/mysql/templates/mysql-pv-pvc.yml.j2"
     state: present
     namespace: sdv
     kubeconfig: /etc/kubernetes/admin.conf

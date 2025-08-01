@@ -5,13 +5,13 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: sdv-local-storage # Must match your StorageClass name
+  storageClassName: sdv-local-storage 
   capacity:
     storage: 4Gi # Must be equal to or greater than the PVC request
   accessModes:
-   - ReadWriteOnce # Must match the PVC request
+   - ReadWriteOnce
   hostPath:
-    path: "/mnt/data/grafana" # This path must exist on your VM
+    path: "/mnt/data/grafana" 
     type: DirectoryOrCreate
   nodeAffinity:
     required:
@@ -20,7 +20,7 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-                - "{{ k8s_node_name.stdout }}"   # This must resolve to the node name where volume exists
+                - "{{ k8s_node_name.stdout }}"
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
 
