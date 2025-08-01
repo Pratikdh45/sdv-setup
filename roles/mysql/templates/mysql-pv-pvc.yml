@@ -20,7 +20,7 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-                - "{{ k8s_node_name }}"   # This must resolve to the node name where volume exists
+                - "{{ k8s_node_name.stdout }}"   # This must resolve to the node name where volume exists
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   # nodeAffinity:
