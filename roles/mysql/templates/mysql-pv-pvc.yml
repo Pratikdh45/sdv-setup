@@ -13,6 +13,16 @@ spec:
     - ReadWriteOnce 
   hostPath:
     path: "/mnt/data" ###Change location as per requirement
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - "{{ k8s_node_name }}"   # This must resolve to the node name where volume exists
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
   # nodeAffinity:
   #   required:
   #     nodeSelectorTerms:
