@@ -74,6 +74,7 @@
   kubernetes.core.k8s:
     src: "{{ playbook_dir }}/../roles/pro-graf/templates/prometheus-pv-pvc.yml"
     state: present
+    namespace: monitoring
     kubeconfig: /etc/kubernetes/admin.conf
     validate_certs: no
   become: true
@@ -83,6 +84,7 @@
   kubernetes.core.k8s:
     src: "{{ playbook_dir }}/../roles/pro-graf/templates/alertmanager-pv-pvc.yml"
     state: present
+    namespace: monitoring
     kubeconfig: /etc/kubernetes/admin.conf
     validate_certs: no
   become: true
@@ -92,6 +94,7 @@
   kubernetes.core.k8s:
     src: "{{ playbook_dir }}/../roles/pro-graf/templates/grafana-pv-pvc.yml"
     state: present
+    namespace: monitoring
     kubeconfig: /etc/kubernetes/admin.conf
     validate_certs: no
   become: true
