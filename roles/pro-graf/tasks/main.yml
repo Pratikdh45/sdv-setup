@@ -159,10 +159,31 @@
   become_user: root
 
 
-# - name: Wait for 25\\ sec before proceeding
-#   ansible.builtin.pause:
-#     seconds: 10
-#   when: k8s_is_ready_or_initialized
+- name: Wait for Prometheus PVC to be bound
+  kubernetes.core.k8s_info:
+    kind: PersistentVolumeClaim
+    name: prometheus-server
+    namespace: "{{ pro_graf_release_namespace }}"
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: prometheus_pvc_status
+  until: prometheus_pvc_status.resources | length > 0 and prometheus_pvc_status.resources[0].status.phase == 'Bound'
+  retries: 30
+  delay: 10
+  become: true
+  become_user: root
+
+- name: Wait for Alertmanager PVC to be bound
+  kubernetes.core.k8s_info:
+    kind: PersistentVolumeClaim
+    name: storage-prometheus-alertmanager-0
+    namespace: "{{ pro_graf_release_namespace }}"
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: alertmanager_pvc_status
+  until: alertmanager_pvc_status.resources | length > 0 and alertmanager_pvc_status.resources[0].status.phase == 'Bound'
+  retries: 30
+  delay: 10
+  become: true
+  become_user: root
 
 
 - name: Deploy  pv & pvc for Grafana
