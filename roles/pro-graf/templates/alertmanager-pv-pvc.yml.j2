@@ -25,16 +25,19 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
 
-# ---
-# apiVersion: v1
-# kind: PersistentVolumeClaim
-# metadata:
-#   name: alertmanager-pv-claim
-#   namespace: monitoring
-# spec:
-#   storageClassName: sdv-local-storage
-#   accessModes:
-#     - ReadWriteOnce
-#   resources:
-#     requests:
-#       storage: 4Gi
+ ---
+ apiVersion: v1
+ kind: PersistentVolumeClaim
+ metadata:
+   name: alertmanager-pv-claim
+   namespace: monitoring
+  labels:
+    type: local
+    app: alertmanager
+ spec:
+   storageClassName: sdv-local-storage
+   accessModes:
+     - ReadWriteOnce
+   resources:
+     requests:
+       storage: 8Gi

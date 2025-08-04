@@ -31,10 +31,13 @@ spec:
 # metadata:
 #   name: grafana-pv-claim
 #   namespace: monitoring
+#   labels:
+#     type: local
+#     app: grafana
 # spec:
 #   storageClassName: sdv-local-storage
 #   accessModes:
 #     - ReadWriteOnce
 #   resources:
 #     requests:
-#       storage: 4Gi
+#       storage: 8Gi
