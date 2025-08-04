@@ -4,10 +4,11 @@ metadata:
   name: prometheus-pv
   labels:
     type: local
+    app: prometheus-server
 spec:
   storageClassName: sdv-local-storage 
   capacity:
-    storage: 4Gi 
+    storage: 8Gi 
   accessModes:
    - ReadWriteOnce 
   hostPath:
@@ -24,16 +25,16 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
 
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: prometheus-pv-claim
-  namespace: monitoring
-spec:
-  storageClassName: sdv-local-storage
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 4Gi
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: prometheus-pv-claim
+#   namespace: monitoring
+# spec:
+#   storageClassName: sdv-local-storage
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 4Gi

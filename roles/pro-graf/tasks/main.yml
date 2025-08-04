@@ -141,14 +141,20 @@
         storageClassName: sdv-local-storage
         accessModes:
           - ReadWriteOnce
-        size: "4Gi"
-      alertmanger:
+        size: "8Gi"
+        selector:
+          matchLabels:
+            app: prometheus-server
+      alertmanager:
         persistence:
           enabled: true
           storageClassName: sdv-local-storage
           accessModes:
             - ReadWriteOnce
-          size: "4Gi"
+          size: "8Gi"
+          selector:
+            matchLabels:
+              app: alertmanager
     kubeconfig: /etc/kubernetes/admin.conf
   become: true
   become_user: root
