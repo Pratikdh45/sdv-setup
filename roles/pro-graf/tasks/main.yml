@@ -114,9 +114,6 @@
           accessModes:
             - ReadWriteOnce
           size: "8Gi"
-          selector:
-            matchLabels:
-              app: prometheus-server
       alertmanager:
         persistence:
           enabled: true
@@ -124,9 +121,6 @@
           accessModes:
             - ReadWriteOnce
           size: "8Gi"
-          selector:
-            matchLabels:
-              app: alertmanager
     kubeconfig: /etc/kubernetes/admin.conf
   become: true
   become_user: root
@@ -182,9 +176,6 @@
         accessModes:
           - ReadWriteOnce
         size: "8Gi"
-        selector:
-          matchLabels:
-            app: grafana
       tolerations:
         - key: "node-role.kubernetes.io/control-plane"
           operator: "Exists"
