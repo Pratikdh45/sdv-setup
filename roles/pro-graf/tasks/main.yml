@@ -171,7 +171,7 @@
       service:
         type: "{{ pro_graf_grafana_server_service_type }}"
         port: 80
-        nodePort: 301945
+        nodePort: 31945
       persistence:
         enabled: true
         storageClassName: sdv-local-storage
