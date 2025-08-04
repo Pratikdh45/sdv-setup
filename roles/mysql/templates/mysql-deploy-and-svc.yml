@@ -43,8 +43,8 @@ spec:
       - name: mysql-persistent-storage
         persistentVolumeClaim:
           claimName: mysql-pv-claim
-      #nodeSelector:
-      #  kubernetes.io/hostname: worker
+          storageClassName: sdv-local-storage
+
 --- 
 apiVersion: v1
 kind: Service
