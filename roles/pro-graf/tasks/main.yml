@@ -34,6 +34,8 @@
   ansible.builtin.file:
     path: "/mnt/data/prometheus"
     state: directory
+    owner: 65534
+    group: 65534
     mode: '0775'
   become: true
   become_user: root
@@ -41,6 +43,8 @@
 - name: Create hostpath directory for Alertmanager
   ansible.builtin.file:
     path: "/mnt/data/alertmanager"
+    owner: 65534
+    group: 65534
     state: directory
     mode: '0775'
   become: true
@@ -50,6 +54,8 @@
   ansible.builtin.file:
     path: "/mnt/data/grafana"
     state: directory
+    owner: 65534
+    group: 65534
     mode: '0775'
   become: true
   become_user: root
@@ -171,7 +177,7 @@
       service:
         type: "{{ pro_graf_grafana_server_service_type }}"
         port: 80
-        nodePort: 31945
+        nodePort: 30745
       persistence:
         enabled: true
         storageClassName: sdv-local-storage
