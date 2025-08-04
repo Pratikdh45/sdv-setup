@@ -175,6 +175,9 @@
         accessModes:
           - ReadWriteOnce
         size: "8Gi"
+        selector:
+          matchLabels:
+            app: grafana
       tolerations:
         - key: "node-role.kubernetes.io/control-plane"
           operator: "Exists"
