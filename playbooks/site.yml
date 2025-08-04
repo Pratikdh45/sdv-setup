@@ -19,5 +19,5 @@
     - k8s_setup
     - monitoring
     - mysql
-    - frontend
+    # - frontend
     - pro-graf

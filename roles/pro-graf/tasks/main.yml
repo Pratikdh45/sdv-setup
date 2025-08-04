@@ -107,21 +107,6 @@
   become: true
   become_user: root
 
-- name: Deploy  pv & pvc for Grafana
-  kubernetes.core.k8s:
-    resource_definition: "{{ lookup('template', 'grafana-pv-pvc.yml.j2') }}"
-    state: present
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
-
-# - name: Wait for 25 sec before proceeding
-#   ansible.builtin.pause:
-#     seconds: 10
-#   when: k8s_is_ready_or_initialized
-
 - name: Install Prometheus
   kubernetes.core.helm:
     name: "{{ pro_graf_prometheus_chart_name }}"
@@ -160,63 +145,80 @@
   become_user: root
 
 
-- name: Install Grafana
-  kubernetes.core.helm:
-    name: "{{ pro_graf_grafana_chart_name }}"
-    chart_ref: "{{ pro_graf_grafana_chart_ref }}"
-    release_namespace: "{{ pro_graf_release_namespace }}"
-    kubeconfig: /etc/kubernetes/admin.conf
-    values:
-      service:
-        type: "{{ pro_graf_grafana_server_service_type }}"
-      persistence:
-        enabled: true
-        storageClassName: sdv-local-storage
-        accessModes:
-          - ReadWriteOnce
-        size: "8Gi"
-        selector:
-          matchLabels:
-            app: grafana
-      tolerations:
-        - key: "node-role.kubernetes.io/control-plane"
-          operator: "Exists"
-          effect: "NoSchedule"
-  become: true
-  become_user: root
+# - name: Wait for 25 sec before proceeding
+#   ansible.builtin.pause:
+#     seconds: 10
+#   when: k8s_is_ready_or_initialized
 
-- name: Get Grafana admin password
-  kubernetes.core.k8s_info:
-   kind: Secret
-   name: grafana
-   namespace: "{{ pro_graf_release_namespace }}"
-   kubeconfig: /etc/kubernetes/admin.conf
-  register: grafana_secret
-  become: true
-  become_user: root
 
-- name: Decode Grafana admin password using shell
-  ansible.builtin.shell: echo "{{ grafana_secret.resources[0].data['admin-password'] }}" | base64 --decode
-  register: decoded_password_result
-  changed_when: false # This command doesn't change system state
-  # Ensure this task only runs if the secret data is available
-  when: grafana_secret.resources is defined and grafana_secret.resources | length > 0 and 'admin-password' in grafana_secret.resources[0].data
+# - name: Deploy  pv & pvc for Grafana
+#   kubernetes.core.k8s:
+#     resource_definition: "{{ lookup('template', 'grafana-pv-pvc.yml.j2') }}"
+#     state: present
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#     validate_certs: no
+#   become: true
+#   become_user: root
 
-- name: Ensure logs directory exists
-  ansible.builtin.file:
-    path: "{{ playbook_dir }}/../logs"
-    state: directory
-    mode: '0755'
-  become: true
-  become_user: root
 
-- name: Save decoded Grafana admin password to Logs folder
-  ansible.builtin.copy:
-    content: "{{ decoded_password_result.stdout }}"
-    dest: "{{ playbook_dir }}/../logs/grafana_admin_password.txt"
-    mode: '0600'
-  when: decoded_password_result is defined and
-      decoded_password_result.stdout is defined and
-      decoded_password_result.stdout | length > 0
-  become: true
-  become_user: root
+# - name: Install Grafana
+#   kubernetes.core.helm:
+#     name: "{{ pro_graf_grafana_chart_name }}"
+#     chart_ref: "{{ pro_graf_grafana_chart_ref }}"
+#     release_namespace: "{{ pro_graf_release_namespace }}"
+#     kubeconfig: /etc/kubernetes/admin.conf
+#     values:
+#       service:
+#         type: "{{ pro_graf_grafana_server_service_type }}"
+#       persistence:
+#         enabled: true
+#         storageClassName: sdv-local-storage
+#         accessModes:
+#           - ReadWriteOnce
+#         size: "8Gi"
+#         selector:
+#           matchLabels:
+#             app: grafana
+#       tolerations:
+#         - key: "node-role.kubernetes.io/control-plane"
+#           operator: "Exists"
+#           effect: "NoSchedule"
+#   become: true
+#   become_user: root
+
+# - name: Get Grafana admin password
+#   kubernetes.core.k8s_info:
+#    kind: Secret
+#    name: grafana
+#    namespace: "{{ pro_graf_release_namespace }}"
+#    kubeconfig: /etc/kubernetes/admin.conf
+#   register: grafana_secret
+#   become: true
+#   become_user: root
+
+# - name: Decode Grafana admin password using shell
+#   ansible.builtin.shell: echo "{{ grafana_secret.resources[0].data['admin-password'] }}" | base64 --decode
+#   register: decoded_password_result
+#   changed_when: false # This command doesn't change system state
+#   # Ensure this task only runs if the secret data is available
+#   when: grafana_secret.resources is defined and grafana_secret.resources | length > 0 and 'admin-password' in grafana_secret.resources[0].data
+
+# - name: Ensure logs directory exists
+#   ansible.builtin.file:
+#     path: "{{ playbook_dir }}/../logs"
+#     state: directory
+#     mode: '0755'
+#   become: true
+#   become_user: root
+
+# - name: Save decoded Grafana admin password to Logs folder
+#   ansible.builtin.copy:
+#     content: "{{ decoded_password_result.stdout }}"
+#     dest: "{{ playbook_dir }}/../logs/grafana_admin_password.txt"
+#     mode: '0600'
+#   when: decoded_password_result is defined and
+#       decoded_password_result.stdout is defined and
+#       decoded_password_result.stdout | length > 0
+#   become: true
+#   become_user: root
