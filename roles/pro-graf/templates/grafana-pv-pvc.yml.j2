@@ -8,7 +8,7 @@ metadata:
 spec:
   storageClassName: sdv-local-storage 
   capacity:
-    storage: 10Gi 
+    storage: 8Gi 
   accessModes:
    - ReadWriteOnce
   hostPath:
@@ -24,20 +24,3 @@ spec:
                 - "{{ k8s_node_name.stdout }}"
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
-
-#--- 
-#apiVersion: v1
-#kind: PersistentVolumeClaim
-#metadata:
-#  name: grafana-pv-claim
-#  namespace: monitoring
-#  labels:
-#    type: local
-#    app: grafana
-#spec:
-#  storageClassName: sdv-local-storage
-#  accessModes:
-#    - ReadWriteOnce
-#  resources:
-#    requests:
-#      storage: 10Gi 

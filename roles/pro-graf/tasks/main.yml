@@ -1,9 +1,6 @@
 ---
 #####################################################################
 
-
-
-
 - name: Get Kubernetes node name
   command: kubectl get nodes -o jsonpath='{.items[0].metadata.name}'
   register: k8s_node_name
@@ -27,12 +24,9 @@
   debug:
     var: kubectl_get_nodes_full_output.stdout_lines
  
- 
 - name: Debug - Kubernetes node name used for PV
   debug:
     var: k8s_node_name.stdout
-
-
 
 #####################################################################
 
@@ -60,9 +54,7 @@
   become: true
   become_user: root
 
-
 #####################################################################
-
 
 - name: Add Prometheus Helm repository
   kubernetes.core.helm_repository:
@@ -80,12 +72,7 @@
   become: true
   become_user: root
 
-
 #####################################################################
-
-
-
-
 
 - name: Deploy  pv & pvc for Prometheus
   kubernetes.core.k8s:
@@ -117,33 +104,32 @@
       server:
         service:
           type: "{{ pro_graf_prometheus_server_service_type }}"
-      tolerations:
-        - key: "node-role.kubernetes.io/control-plane"
-          operator: "Exists"
-          effect: "NoSchedule"
-      persistence:
-        enabled: true
-        storageClassName: sdv-local-storage
-        accessModes:
-          - ReadWriteOnce
-        size: 8Gi
-        selector:
-          matchLabels:
-            app: prometheus-server
+        tolerations:
+          - key: "node-role.kubernetes.io/control-plane"
+            operator: "Exists"
+            effect: "NoSchedule"
+        persistence:
+          enabled: true
+          storageClassName: sdv-local-storage
+          accessModes:
+            - ReadWriteOnce
+          size: "8Gi"
+          selector:
+            matchLabels:
+              app: prometheus-server
       alertmanager:
         persistence:
           enabled: true
           storageClassName: sdv-local-storage
           accessModes:
             - ReadWriteOnce
-          size: 8Gi
+          size: "8Gi"
           selector:
             matchLabels:
               app: alertmanager
     kubeconfig: /etc/kubernetes/admin.conf
   become: true
   become_user: root
-
 
 - name: Wait for Prometheus PVC to be bound
   kubernetes.core.k8s_info:
@@ -171,7 +157,6 @@
   become: true
   become_user: root
 
-
 - name: Deploy  pv & pvc for Grafana
   kubernetes.core.k8s:
     resource_definition: "{{ lookup('template', 'grafana-pv-pvc.yml.j2') }}"
@@ -181,7 +166,6 @@
     validate_certs: no
   become: true
   become_user: root
-
 
 - name: Install Grafana
   kubernetes.core.helm:
@@ -197,7 +181,7 @@
         storageClassName: sdv-local-storage
         accessModes:
           - ReadWriteOnce
-        size: 10Gi
+        size: "8Gi"
         selector:
           matchLabels:
             app: grafana
