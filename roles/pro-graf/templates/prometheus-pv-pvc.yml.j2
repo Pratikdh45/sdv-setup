@@ -20,7 +20,7 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-                - "{{ k8s_node_name.stdout }}"   # This must resolve to the node name where volume exists
+                - "{{ k8s_node_name.stdout }}"  
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
 
@@ -28,12 +28,12 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: prometheus-pvc
+  name: prometheus-pv-claim
   namespace: monitoring
 spec:
+  storageClassName: sdv-local-storage
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 4Gi
-  storageClassName: sdv-local-storage

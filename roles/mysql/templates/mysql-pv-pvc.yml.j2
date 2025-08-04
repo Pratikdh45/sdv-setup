@@ -2,17 +2,16 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: mysql-pv-volume
-  # namespace: sdv
   labels:
     type: local
 spec:
   storageClassName: sdv-local-storage
   capacity:
-    storage: 4Gi ###Change as per requirement
+    storage: 4Gi 
   accessModes:
     - ReadWriteOnce 
   hostPath:
-    path: "/mnt/data" ###Change location as per requirement
+    path: "/mnt/data" 
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -20,17 +19,10 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-                - "{{ k8s_node_name.stdout }}"   # This must resolve to the node name where volume exists
+                - "{{ k8s_node_name.stdout }}"   
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
-  # nodeAffinity:
-  #   required:
-  #     nodeSelectorTerms:
-  #     - matchExpressions:
-  #       - key: kubernetes.io/hostname
-  #         operator: In
-  #         values:
-  #         - vunetpock8sworker2
+
 --- 
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -43,4 +35,4 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 4Gi ###Change as per requirement and according to above PV storage size 
+      storage: 4Gi 

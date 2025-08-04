@@ -5,7 +5,7 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: sdv-local-storage # Must match your StorageClass name
+  storageClassName: sdv-local-storage 
   capacity:
     storage: 4Gi 
   accessModes:
@@ -28,12 +28,12 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: prometheus-pvc
+  name: prometheus-pv-claim
   namespace: monitoring
 spec:
+  storageClassName: sdv-local-storage
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 4Gi
-  storageClassName: sdv-local-storage

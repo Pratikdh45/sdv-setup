@@ -7,7 +7,7 @@ metadata:
 spec:
   storageClassName: sdv-local-storage 
   capacity:
-    storage: 4Gi # Must be equal to or greater than the PVC request
+    storage: 4Gi 
   accessModes:
    - ReadWriteOnce
   hostPath:
@@ -28,12 +28,12 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: prometheus-pvc
+  name: prometheus-pv-claim
   namespace: monitoring
 spec:
+  storageClassName: sdv-local-storage
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 4Gi
-  storageClassName: sdv-local-storage
