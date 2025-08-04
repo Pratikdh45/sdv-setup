@@ -31,9 +31,9 @@ spec:
  metadata:
    name: prometheus-pv-claim
    namespace: monitoring
-  labels:
-    type: local
-    app: prometheus-server
+   labels:
+     type: local
+     app: prometheus-server
  spec:
    storageClassName: sdv-local-storage
    accessModes:
