@@ -124,22 +124,36 @@
       persistence:
         enabled: true
         storageClassName: sdv-local-storage
-        accessModes:
-          - ReadWriteOnce
-        size: "8Gi"
-        selector:
-          matchLabels:
-            app: prometheus-server
+        volumeClaimTemplate:
+          metadata:
+            name: prometheus-pv-claim
+            namespace: monitoring
+            labels:
+              app: prometheus-server
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 8Gi
+            storageClassName: sdv-local-storage
       alertmanager:
         persistence:
           enabled: true
           storageClassName: sdv-local-storage
-          accessModes:
-            - ReadWriteOnce
-          size: "8Gi"
-          selector:
-            matchLabels:
-              app: alertmanager
+          volumeClaimTemplate:
+            metadata:
+              name: alertmanager-pv-claim
+              namespace: monitoring
+              labels:
+                app: alertmanager
+            spec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 8Gi
+              storageClassName: sdv-local-storage
     kubeconfig: /etc/kubernetes/admin.conf
   become: true
   become_user: root
