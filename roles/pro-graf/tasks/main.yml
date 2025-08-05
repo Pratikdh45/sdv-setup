@@ -107,6 +107,8 @@
     release_namespace: "{{ pro_graf_release_namespace }}"
     create_namespace: yes
     values:
+      kube-state-metrics:
+        enabled: true
       server:
         service:
           type: "{{ pro_graf_prometheus_server_service_type }}"
@@ -176,8 +178,8 @@
     values:
       service:
         type: "{{ pro_graf_grafana_server_service_type }}"
-        port: 80
-        nodePort: 30745
+        port: "{{ grafana_port }}"
+        nodePort: "{{ grafana_nodeport }}"
       persistence:
         enabled: true
         storageClassName: sdv-local-storage
