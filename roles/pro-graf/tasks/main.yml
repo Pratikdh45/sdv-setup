@@ -282,15 +282,7 @@
     group: root
     mode: '0644'
   delegate_to: localhost
-
-  kubernetes.core.k8s_info:
-   kind: Secret
-   name: grafana
-   namespace: "{{ pro_graf_release_namespace }}"
-   kubeconfig: /etc/kubernetes/admin.conf
-  register: grafana_secret
   become: true
-  become_user: root
 
 
 #####################################################################
