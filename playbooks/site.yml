@@ -18,6 +18,6 @@
     - python
     - k8s_setup
     - monitoring
-    - pro-graf
     - mysql
     - frontend
+    - pro-graf

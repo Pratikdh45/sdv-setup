@@ -62,6 +62,28 @@
 
 #####################################################################
 
+- name: Add NGINX Ingress Controller Helm repository
+  kubernetes.core.helm_repository:
+    name: ingress-nginx
+    repo_url: "https://kubernetes.github.io/ingress-nginx"
+  become: true
+  become_user: root
+
+- name: Install NGINX Ingress Controller
+  kubernetes.core.helm:
+    name: ingress-nginx
+    chart_ref: ingress-nginx/ingress-nginx
+    release_namespace: ingress-nginx
+    create_namespace: yes
+  become: true
+  become_user: root
+
+
+
+#####################################################################
+
+
+
 - name: Add Prometheus Helm repository
   kubernetes.core.helm_repository:
     name: "{{ pro_graf_prometheus_repo_name }}"
@@ -159,6 +181,10 @@
   become: true
   become_user: root
 
+
+#####################################################################
+
+
 - name: Deploy  pv & pvc for Grafana
   kubernetes.core.k8s:
     resource_definition: "{{ lookup('template', 'grafana-pv-pvc.yml.j2') }}"
@@ -178,8 +204,8 @@
     values:
       service:
         type: "{{ pro_graf_grafana_server_service_type }}"
-        port: "{{ grafana_port }}"
-        nodePort: "{{ grafana_nodeport }}"
+        # port: "{{ grafana_port }}"
+        # nodePort: "{{ grafana_nodeport }}"
       persistence:
         enabled: true
         storageClassName: sdv-local-storage
@@ -192,6 +218,82 @@
           effect: "NoSchedule"
   become: true
   become_user: root
+
+- name: Wait for Grafana PVC to be bound
+  kubernetes.core.k8s_info:
+    kind: PersistentVolumeClaim
+    name: grafana
+    namespace: "{{ pro_graf_release_namespace }}"
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: grafana_pvc_status
+  until: grafana_pvc_status.resources | length > 0 and grafana_pvc_status.resources[0].status.phase == 'Bound'
+  retries: 30
+  delay: 10
+  become: true
+  become_user: root
+
+
+#####################################################################
+
+
+
+- name: Deploy Monitoring Ingress
+  kubernetes.core.k8s:
+    src: "{{ playbook_dir }}/../roles/pro-graf/templates/monitoring-ingress.yml"
+    state: present
+    namespace: monitoring
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
+
+
+- name: Wait for Ingress Controller to get an external IP
+  shell: "kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}'"
+  register: ingress_ip_result
+  until: ingress_ip_result.stdout != ""
+  retries: 30
+  delay: 10
+  become: true
+  become_user: root
+  changed_when: false
+
+- name: Set ingress_ip fact
+  set_fact:
+    ingress_ip: "{{ ingress_ip_result.stdout }}"
+
+- name: Update /etc/hosts for sdv-grafana
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '.*\s+sdv-grafana'
+    line: "{{ ingress_ip }} sdv-grafana"
+    owner: root
+    group: root
+    mode: '0644'
+  delegate_to: localhost
+  become: true
+
+- name: Update /etc/hosts for sdv-prometheus
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '.*\s+sdv-prometheus'
+    line: "{{ ingress_ip }} sdv-prometheus"
+    owner: root
+    group: root
+    mode: '0644'
+  delegate_to: localhost
+
+  kubernetes.core.k8s_info:
+   kind: Secret
+   name: grafana
+   namespace: "{{ pro_graf_release_namespace }}"
+   kubeconfig: /etc/kubernetes/admin.conf
+  register: grafana_secret
+  become: true
+  become_user: root
+
+
+#####################################################################
 
 - name: Get Grafana admin password
   kubernetes.core.k8s_info:
