@@ -1,6 +1,8 @@
 ---
 #####################################################################
 
+###### Use this when you want to use the Kubernetes node name as the ingress IP ######
+
 # - name: Get Kubernetes node name
 #   command: kubectl get nodes -o jsonpath='{.items[0].metadata.name}'
 #   register: k8s_node_name
@@ -28,6 +30,16 @@
 #   debug:
 #     var: k8s_node_name.stdout
 
+# - name: Set private_ip from user input to ingress_ip
+#   set_fact:
+#     ingress_ip: "{{ k8s_node_name.stdout }}"
+
+# - name: Debug - Server public IP
+#   debug:
+#     var: k8s_node_name.stdout
+
+
+####### Use this when you want to use the Machine Public/Elastic IP as the ingress IP ######
 
 # --- Manual IP Input ---
 - name: Step 5:Prompt for Public/Elastic IP address
@@ -39,13 +51,6 @@
 - name: Set public_ip from user input to ingress_ip
   set_fact:
     ingress_ip: "{{ public_ip_input.user_input }}"
-
-
-
-# - name: Get server public IP
-#   ansible.builtin.shell: "curl -s ifconfig.me"
-#   register: public_ip
-#   changed_when: false
  
 - name: Debug - Server public IP
   debug:
@@ -293,14 +298,6 @@
   become_user: root
 
 
-# - name: Set ingress_ip fact
-#   set_fact:
-#     ingress_ip: "{{ k8s_node_name.stdout }}"
-
-# - name: Set ingress_ip fact
-#   set_fact:
-#     ingress_ip: "{{ public_ip.stdout }}"
-
 - name: Update /etc/hosts for sdv-grafana
   ansible.builtin.lineinfile:
     path: /etc/hosts
@@ -361,3 +358,28 @@
       decoded_password_result.stdout | length > 0
   become: true
   become_user: root
+
+
+
+######################      Display instructions for accessing UIs        ##################################
+
+- name: Display instructions for accessing UIs
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "####################################################################################"
+      - "# To access the Grafana and Prometheus UIs, you must edit your LOCAL /etc/hosts file."
+      - "# Open the file with sudo privileges, for example: sudo vim /etc/hosts"
+      - "#"
+      - "# Add the following lines, then save and close the file:"
+      - "#   {{ ingress_ip }} sdv-grafana"
+      - "#   {{ ingress_ip }} sdv-prometheus"
+      - "#"
+      - "# After saving, you can access the UIs at:"
+      - "#   Grafana: http://sdv-grafana"
+      - "#   Prometheus: http://sdv-prometheus"
+      - "#"
+      - "# The Grafana admin password is saved in the logs/grafana_admin_password.txt file."
+      - "####################################################################################"
+      - ""
+  when: ingress_ip is defined and ingress_ip != ""
