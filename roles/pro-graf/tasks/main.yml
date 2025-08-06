@@ -1,32 +1,41 @@
 ---
 #####################################################################
 
-- name: Get Kubernetes node name
-  command: kubectl get nodes -o jsonpath='{.items[0].metadata.name}'
-  register: k8s_node_name
+# - name: Get Kubernetes node name
+#   command: kubectl get nodes -o jsonpath='{.items[0].metadata.name}'
+#   register: k8s_node_name
+#   changed_when: false
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#  
+# - name: Debug - Kubernetes node name
+#   debug:
+#     var: k8s_node_name.stdout
+#  
+# - name: Debug - Full kubectl get nodes output
+#   command: kubectl get nodes
+#   register: kubectl_get_nodes_full_output
+#   changed_when: false
+#   failed_when: false
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#  
+# - name: Debug - Print full kubectl get nodes output
+#   debug:
+#     var: kubectl_get_nodes_full_output.stdout_lines
+#  
+# - name: Debug - Kubernetes node name used for PV
+#   debug:
+#     var: k8s_node_name.stdout
+
+- name: Get server public IP
+  ansible.builtin.shell: "curl -s ifconfig.me"
+  register: public_ip
   changed_when: false
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
  
-- name: Debug - Kubernetes node name
+- name: Debug - Server public IP
   debug:
-    var: k8s_node_name.stdout
- 
-- name: Debug - Full kubectl get nodes output
-  command: kubectl get nodes
-  register: kubectl_get_nodes_full_output
-  changed_when: false
-  failed_when: false
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
- 
-- name: Debug - Print full kubectl get nodes output
-  debug:
-    var: kubectl_get_nodes_full_output.stdout_lines
- 
-- name: Debug - Kubernetes node name used for PV
-  debug:
-    var: k8s_node_name.stdout
+    var: public_ip.stdout
 
 #####################################################################
 
@@ -69,12 +78,34 @@
   become: true
   become_user: root
 
+# - name: Install NGINX Ingress Controller
+#   kubernetes.core.helm:
+#     name: ingress-nginx
+#     chart_ref: ingress-nginx/ingress-nginx
+#     release_namespace: ingress-nginx
+#     create_namespace: yes
+#     values:
+#       controller:
+#         service:
+#           type: NodePort
+#         hostPort:
+#           enabled: true
+
 - name: Install NGINX Ingress Controller
   kubernetes.core.helm:
     name: ingress-nginx
     chart_ref: ingress-nginx/ingress-nginx
     release_namespace: ingress-nginx
     create_namespace: yes
+    values:
+      controller:
+        service:
+          type: NodePort
+        hostPort:
+          enabled: true
+        ports:
+          http: 80
+          https: 443
   become: true
   become_user: root
 
@@ -248,19 +279,13 @@
   become_user: root
 
 
-- name: Wait for Ingress Controller to get an external IP
-  shell: "kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}'"
-  register: ingress_ip_result
-  until: ingress_ip_result.stdout != ""
-  retries: 30
-  delay: 10
-  become: true
-  become_user: root
-  changed_when: false
+# - name: Set ingress_ip fact
+#   set_fact:
+#     ingress_ip: "{{ k8s_node_name.stdout }}"
 
 - name: Set ingress_ip fact
   set_fact:
-    ingress_ip: "{{ ingress_ip_result.stdout }}"
+    ingress_ip: "{{ public_ip.stdout }}"
 
 - name: Update /etc/hosts for sdv-grafana
   ansible.builtin.lineinfile:
