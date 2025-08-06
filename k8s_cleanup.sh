@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- Log Setup ---
-LOG_DIR="$(dirname "$0")/logs"
+LOG_DIR="$(dirname "$0")/logs/k8s_cleanup"
 TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
 LOG_FILE="$LOG_DIR/cleanup-$TIMESTAMP.log"
 

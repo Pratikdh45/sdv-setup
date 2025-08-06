@@ -323,6 +323,7 @@
 
 #####################################################################
 
+
 - name: Get Grafana admin password
   kubernetes.core.k8s_info:
    kind: Secret
@@ -340,9 +341,19 @@
   # Ensure this task only runs if the secret data is available
   when: grafana_secret.resources is defined and grafana_secret.resources | length > 0 and 'admin-password' in grafana_secret.resources[0].data
 
+- name: Create directory to store Grafana password
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/../logs/grafana"
+    state: directory
+    owner: 65534
+    group: 65534
+    mode: '0775'
+  become: true
+  become_user: root
+
 - name: Ensure logs directory exists
   ansible.builtin.file:
-    path: "{{ playbook_dir }}/../logs"
+    path: "{{ playbook_dir }}/../logs/grafana"
     state: directory
     mode: '0755'
   become: true
@@ -351,7 +362,7 @@
 - name: Save decoded Grafana admin password to Logs folder
   ansible.builtin.copy:
     content: "{{ decoded_password_result.stdout }}"
-    dest: "{{ playbook_dir }}/../logs/grafana_admin_password.txt"
+    dest: "{{ playbook_dir }}/../logs//grafana/grafana_admin_password.txt"
     mode: '0600'
   when: decoded_password_result is defined and
       decoded_password_result.stdout is defined and

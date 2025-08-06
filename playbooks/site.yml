@@ -15,9 +15,10 @@
 
   roles:
     - OSdetection
-    - python
-    - k8s_setup
-    - monitoring
-    - mysql
-    - frontend
-    - pro-graf
+    # - python
+    # - k8s_setup
+    # - monitoring
+    # - mysql
+    # - frontend
+    - elk
+    # - pro-graf
