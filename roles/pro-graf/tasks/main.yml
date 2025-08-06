@@ -28,10 +28,24 @@
 #   debug:
 #     var: k8s_node_name.stdout
 
-- name: Get server public IP
-  ansible.builtin.shell: "curl -s ifconfig.me"
-  register: public_ip
-  changed_when: false
+
+# --- Manual IP Input ---
+- name: Step 5:Prompt for Public/Elastic IP address
+  ansible.builtin.pause:
+    prompt: "Please enter the Public/Elastic IP address of this machine"
+    echo: yes
+  register: public_ip_input
+
+- name: Set public_ip from user input to ingress_ip
+  set_fact:
+    ingress_ip: "{{ public_ip_input.user_input }}"
+
+
+
+# - name: Get server public IP
+#   ansible.builtin.shell: "curl -s ifconfig.me"
+#   register: public_ip
+#   changed_when: false
  
 - name: Debug - Server public IP
   debug:
@@ -283,9 +297,9 @@
 #   set_fact:
 #     ingress_ip: "{{ k8s_node_name.stdout }}"
 
-- name: Set ingress_ip fact
-  set_fact:
-    ingress_ip: "{{ public_ip.stdout }}"
+# - name: Set ingress_ip fact
+#   set_fact:
+#     ingress_ip: "{{ public_ip.stdout }}"
 
 - name: Update /etc/hosts for sdv-grafana
   ansible.builtin.lineinfile:

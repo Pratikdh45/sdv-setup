@@ -121,4 +121,4 @@ sudo rm -rf /var/lib/containerd || true # For Containerd
 
 
 echo "Kubernetes cleanup complete."
-echo "Rebooting the system to ensure all changes take effect..."
+echo "Reboot the system to ensure all changes take effect..."
