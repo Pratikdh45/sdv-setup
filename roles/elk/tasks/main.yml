@@ -1,4 +1,47 @@
 ---
+#################### Use this section only if you are running separately ELK role ##########################################################
+
+- name: Get Kubernetes node name
+  command: kubectl get nodes -o jsonpath='{.items[0].metadata.name}'
+  register: k8s_node_name
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+ 
+- name: Debug - Kubernetes node name
+  debug:
+    var: k8s_node_name.stdout
+ 
+- name: Debug - Full kubectl get nodes output
+  command: kubectl get nodes
+  register: kubectl_get_nodes_full_output
+  changed_when: false
+  failed_when: false
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+ 
+- name: Debug - Print full kubectl get nodes output
+  debug:
+    var: kubectl_get_nodes_full_output.stdout_lines
+ 
+- name: Debug - Kubernetes node name used for PV
+  debug:
+    var: k8s_node_name.stdout
+
+- name: Set private_ip from user input to ingress_ip
+  set_fact:
+    ingress_ip: "{{ k8s_node_name.stdout }}"
+
+- name: Debug - Server public IP
+  debug:
+    var: k8s_node_name.stdout
+
+
+###############################################################################################################################
+
+
+
+
 - name: Create hostpath directory for Elasticsearch
   ansible.builtin.file:
     path: "/mnt/data/elasticsearch"
