@@ -59,6 +59,40 @@
 
 
 
+- name: Clean up any failed Elasticsearch release
+  kubernetes.core.helm:
+    name: elasticsearch
+    release_namespace: monitoring
+    state: absent
+  become: true
+  become_user: root
+
+- name: Clean up any failed Kibana release
+  kubernetes.core.helm:
+    name: kibana
+    release_namespace: monitoring
+    state: absent
+  become: true
+  become_user: root
+
+- name: Clean up any failed Logstash release
+  kubernetes.core.helm:
+    name: logstash
+    release_namespace: monitoring
+    state: absent
+  become: true
+  become_user: root
+
+- name: Clean up any failed Filebeat release
+  kubernetes.core.helm:
+    name: filebeat
+    release_namespace: monitoring
+    state: absent
+  become: true
+  become_user: root
+
+  
+
 - name: Deploy Elasticsearch
   kubernetes.core.helm:
     name: elasticsearch
