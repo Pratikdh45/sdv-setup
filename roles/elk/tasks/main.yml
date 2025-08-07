@@ -57,12 +57,12 @@
 - name: Deploy Elasticsearch
   kubernetes.core.helm:
     name: elasticsearch
-    chart_ref: elastic/elasticsearch
+    chart_ref: "{{ project_dir }}/../helm-charts/elk/elk/helm-charts/charts/elasticsearch"
     release_namespace: monitoring
     create_namespace: yes
     values:
-      replicas: 1
-      minimumMasterNodes: 1
+      replicas: 2
+      minimumMasterNodes: 2
       esJavaOpts: "-Xmx1g -Xms1g"
       resources:
         requests:
