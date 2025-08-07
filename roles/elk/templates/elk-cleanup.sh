@@ -11,6 +11,18 @@ helm uninstall logstash -n monitoring || true
 helm uninstall filebeat -n monitoring || true
 
 echo "\n--- Forcefully Deleting Orphaned Kibana Resources (errors for 'not found' are OK) ---"
+kubectl delete role -n monitoring pre-install-kibana-kibana --ignore-not-found=true
+kubectl delete role -n monitoring post-delete-kibana-kibana --ignore-not-found=true
+kubectl delete rolebinding -n monitoring pre-install-kibana-kibana --ignore-not-found=true
+kubectl delete rolebinding -n monitoring post-delete-kibana-kibana --ignore-not-found=true
+kubectl delete job -n monitoring pre-install-kibana-kibana --ignore-not-found=true
+kubectl delete job -n monitoring post-delete-kibana-kibana --ignore-not-found=true
+kubectl delete service -n monitoring pre-install-kibana-kibana --ignore-not-found=true
+kubectl delete service -n monitoring post-delete-kibana-kibana --ignore-not-found=true
+kubectl delete configmap -n monitoring pre-install-kibana-kibana --ignore-not-found=true
+kubectl delete configmap -n monitoring post-delete-kibana-kibana --ignore-not-found=true
+kubectl delete secret -n monitoring pre-install-kibana-kibana --ignore-not-found=true
+kubectl delete secret -n monitoring post-delete-kibana-kibana --ignore-not-found=true
 kubectl delete job -n monitoring -l app.kubernetes.io/instance=kibana --ignore-not-found=true
 kubectl delete serviceaccount -n monitoring pre-install-kibana-kibana --ignore-not-found=true
 kubectl delete serviceaccount -n monitoring post-delete-kibana-kibana --ignore-not-found=true
