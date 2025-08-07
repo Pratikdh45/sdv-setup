@@ -21,5 +21,9 @@ spec:
         - key: kubernetes.io/hostname
           operator: In
           values:
-          - {{ k8s_node_name.stdout }}
+          - {{ k8s_node_name.stdout }}        
+  claimRef:
+    namespace: monitoring
+    name: elasticsearch-master-elasticsearch-master-{{ i }}
+    
 {% endfor %}
