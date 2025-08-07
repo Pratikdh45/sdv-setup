@@ -1,4 +1,10 @@
 ---
+- name: Install Kubernetes Python library
+  ansible.builtin.pip:
+    name: kubernetes
+    state: present
+  become: true
+
 #################### Use this section only if you are running separately ELK role ##########################################################
 
 - name: Get Kubernetes node name
