@@ -59,46 +59,46 @@
 
 
 
-- name: Clean up any failed Elasticsearch release
-  kubernetes.core.helm:
-    name: elasticsearch
-    release_namespace: monitoring
-    state: absent
-  become: true
-  become_user: root
+# - name: Clean up any failed Elasticsearch release
+#   kubernetes.core.helm:
+#     name: elasticsearch
+#     release_namespace: monitoring
+#     state: absent
+#   become: true
+#   become_user: root
 
-- name: Manually delete orphaned Kibana helm scripts ConfigMap
-  kubernetes.core.k8s:
-    kind: ConfigMap
-    name: kibana-kibana-helm-scripts
-    namespace: monitoring
-    state: absent
-    kubeconfig: /etc/kubernetes/admin.conf
-  ignore_errors: yes
-  become: true
-  become_user: root
+# - name: Manually delete orphaned Kibana helm scripts ConfigMap
+#   kubernetes.core.k8s:
+#     kind: ConfigMap
+#     name: kibana-kibana-helm-scripts
+#     namespace: monitoring
+#     state: absent
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   ignore_errors: yes
+#   become: true
+#   become_user: root
 
-- name: Manually delete orphaned Kibana ServiceAccount
-  kubernetes.core.k8s:
-    kind: ServiceAccount
-    name: pre-install-kibana-kibana
-    namespace: monitoring
-    state: absent
-    kubeconfig: /etc/kubernetes/admin.conf
-  ignore_errors: yes
-  become: true
-  become_user: root
+# - name: Manually delete orphaned Kibana ServiceAccount
+#   kubernetes.core.k8s:
+#     kind: ServiceAccount
+#     name: pre-install-kibana-kibana
+#     namespace: monitoring
+#     state: absent
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   ignore_errors: yes
+#   become: true
+#   become_user: root
 
-- name: Manually delete orphaned Kibana pre-install Job
-  kubernetes.core.k8s:
-    kind: Job
-    name: pre-install-kibana-kibana
-    namespace: monitoring
-    state: absent
-    kubeconfig: /etc/kubernetes/admin.conf
-  ignore_errors: yes
-  become: true
-  become_user: root
+# - name: Manually delete orphaned Kibana pre-install Job
+#   kubernetes.core.k8s:
+#     kind: Job
+#     name: pre-install-kibana-kibana
+#     namespace: monitoring
+#     state: absent
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   ignore_errors: yes
+#   become: true
+#   become_user: root
 
 # - name: Clean up any failed Kibana release
 #   kubernetes.core.helm:
