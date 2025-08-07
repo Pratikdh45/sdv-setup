@@ -25,5 +25,5 @@ spec:
   claimRef:
     namespace: monitoring
     name: elasticsearch-master-elasticsearch-master-{{ i }}
-    
+    storageClassName: sdv-local-storage
 {% endfor %}
