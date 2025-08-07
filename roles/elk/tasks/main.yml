@@ -57,7 +57,7 @@
 - name: Deploy Elasticsearch
   kubernetes.core.helm:
     name: elasticsearch
-    chart_ref: "{{ project_dir }}/../helm-charts/elk/elk/helm-charts/charts/elasticsearch"
+    chart_ref: "../helm-charts/elk/helm-charts/elasticsearch"
     release_namespace: monitoring
     create_namespace: yes
     values:
