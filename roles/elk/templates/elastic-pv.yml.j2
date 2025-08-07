@@ -23,8 +23,8 @@ spec:
           operator: In
           values:
           - {{ k8s_node_name.stdout }}
-#  persistentVolumeReclaimPolicy: Retain
-#  volumeMode: Filesystem
-#  claimRef:
-#    namespace: monitoring
-#    name: 
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  claimRef:
+    namespace: monitoring
+    name: "elasticsearch-master-*"

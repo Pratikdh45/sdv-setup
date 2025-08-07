@@ -48,15 +48,7 @@
 
 
 
-- name: Create hostpath directory for Elasticsearch
-  ansible.builtin.file:
-    path: "/mnt/data/elasticsearch"
-    state: directory
-    owner: 1000
-    group: 1000
-    mode: '0775'
-  become: true
-  become_user: root
+
 
 - name: Add Elastic Helm repository
   kubernetes.core.helm_repository:
@@ -65,15 +57,7 @@
   become: true
   become_user: root
 
-- name: Deploy pv for Elasticsearch
-  kubernetes.core.k8s:
-    resource_definition: "{{ lookup('template', 'elastic-pv.yml.j2') }}"
-    state: present
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+
 
 - name: Deploy Elasticsearch
   kubernetes.core.helm:
@@ -96,8 +80,6 @@
         enabled: true
         storageClassName: sdv-local-storage
         size: "4Gi"
-  become: true
-  become_user: root
 
 - name: Deploy Kibana
   kubernetes.core.helm:
@@ -105,7 +87,7 @@
     chart_ref: elastic/kibana
     release_namespace: monitoring
     values:
-      elasticsearchHosts: "http://elasticsearch-master:9200"
+      elasticsearchHosts: "https://elasticsearch-master:9200"
       resources:
         requests:
           cpu: "100m"
