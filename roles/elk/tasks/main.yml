@@ -61,8 +61,8 @@
     release_namespace: monitoring
     create_namespace: yes
     values:
-      replicas: 3
-      minimumMasterNodes: 2
+      replicas: 1
+      minimumMasterNodes: 1
       esJavaOpts: "-Xmx1g -Xms1g"
       resources:
         requests:

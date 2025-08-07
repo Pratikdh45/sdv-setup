@@ -28,5 +28,5 @@ spec:
   volumeMode: Filesystem
   claimRef:
     namespace: monitoring
-    name: elasticsearch-master
+    name: elasticsearch-master-elasticsearch-master-{{ i }}
 {% endfor %}
