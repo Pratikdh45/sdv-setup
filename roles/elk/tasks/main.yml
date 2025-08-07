@@ -5,6 +5,17 @@
     state: present
   become: true
 
+- name: Create host paths for Elasticsearch PVs
+  ansible.builtin.file:
+    path: "/mnt/data/es-{{ item }}"
+    state: directory
+    owner: 1000
+    group: 1000
+    mode: '0775'
+  loop: [0, 1, 2]
+  become: true
+  become_user: root
+
 #################### Use this section only if you are running separately ELK role ##########################################################
 
 - name: Get Kubernetes node name
@@ -18,29 +29,29 @@
   debug:
     var: k8s_node_name.stdout
  
-- name: Debug - Full kubectl get nodes output
-  command: kubectl get nodes
-  register: kubectl_get_nodes_full_output
-  changed_when: false
-  failed_when: false
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
- 
-- name: Debug - Print full kubectl get nodes output
-  debug:
-    var: kubectl_get_nodes_full_output.stdout_lines
- 
-- name: Debug - Kubernetes node name used for PV
-  debug:
-    var: k8s_node_name.stdout
-
-- name: Set private_ip from user input to ingress_ip
-  set_fact:
-    ingress_ip: "{{ k8s_node_name.stdout }}"
-
-- name: Debug - Server public IP
-  debug:
-    var: k8s_node_name.stdout
+# - name: Debug - Full kubectl get nodes output
+#   command: kubectl get nodes
+#   register: kubectl_get_nodes_full_output
+#   changed_when: false
+#   failed_when: false
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+# 
+# - name: Debug - Print full kubectl get nodes output
+#   debug:
+#     var: kubectl_get_nodes_full_output.stdout_lines
+# 
+# - name: Debug - Kubernetes node name used for PV
+#   debug:
+#     var: k8s_node_name.stdout
+#
+# - name: Set private_ip from user input to ingress_ip
+#   set_fact:
+#     ingress_ip: "{{ k8s_node_name.stdout }}"
+#
+# - name: Debug - Server public IP
+#   debug:
+#     var: k8s_node_name.stdout
 
 
 ###############################################################################################################################
@@ -130,6 +141,14 @@
 
 
 
+- name: Deploy Elasticsearch PVs
+  kubernetes.core.k8s:
+    resource_definition: "{{ lookup('template', 'elasticsearch-pvs.yml.j2') }}"
+    state: present
+    kubeconfig: /etc/kubernetes/admin.conf
+  become: true
+  become_user: root
+
 - name: Deploy Elasticsearch
   kubernetes.core.helm:
     name: elasticsearch
@@ -152,6 +171,20 @@
         storageClassName: sdv-local-storage
         size: "4Gi"
 
+- name: Wait for Elasticsearch cluster to be ready
+  kubernetes.core.k8s_info:
+    kind: StatefulSet
+    name: elasticsearch-master
+    namespace: monitoring
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: es_statefulset
+  until: es_statefulset.resources | length > 0 and (es_statefulset.resources[0].status.readyReplicas | default(0)) == 3
+  retries: 60  # Wait for up to 10 minutes (60 * 10s)
+  delay: 10
+  become: true
+  become_user: root
+
+
 - name: Deploy Kibana
   kubernetes.core.helm:
     name: kibana
@@ -166,6 +199,19 @@
         limits:
           cpu: "1000m"
           memory: "1Gi"
+  become: true
+  become_user: root
+
+- name: Wait for Kibana Deployment to be ready
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    name: kibana-kibana
+    namespace: monitoring
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: kibana_deployment
+  until: kibana_deployment.resources | length > 0 and (kibana_deployment.resources[0].status.readyReplicas | default(0)) == 1
+  retries: 30
+  delay: 10
   become: true
   become_user: root
 
@@ -198,6 +244,19 @@
   become: true
   become_user: root
 
+- name: Wait for Logstash Deployment to be ready
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    name: logstash-logstash
+    namespace: monitoring
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: logstash_deployment
+  until: logstash_deployment.resources | length > 0 and (logstash_deployment.resources[0].status.readyReplicas | default(0)) >= 2
+  retries: 30
+  delay: 10
+  become: true
+  become_user: root
+  
 - name: Deploy Kibana Ingress
   kubernetes.core.k8s:
     src: "{{ playbook_dir }}/../roles/elk/templates/kibana-ingress.yml"
@@ -222,6 +281,19 @@
               - /var/log/containers/*.log
           output.logstash:
             hosts: ["logstash-logstash:5044"]
+  become: true
+  become_user: root
+
+- name: Wait for Filebeat DaemonSet to be ready
+  kubernetes.core.k8s_info:
+    kind: DaemonSet
+    name: filebeat-filebeat
+    namespace: monitoring
+    kubeconfig: /etc/kubernetes/admin.conf
+  register: filebeat_daemonset
+  until: filebeat_daemonset.resources | length > 0 and (filebeat_daemonset.resources[0].status.numberReady | default(0)) == (filebeat_daemonset.resources[0].status.desiredNumberScheduled | default(1))
+  retries: 30
+  delay: 10
   become: true
   become_user: root
 
