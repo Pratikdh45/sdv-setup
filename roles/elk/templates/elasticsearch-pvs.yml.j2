@@ -6,17 +6,16 @@ metadata:
   name: elasticsearch-pv-{{ i }}
   labels:
     type: local
-    app: elasticsearch-master-elasticsearch-master-{{ i }}
+    app: elasticsearch-master
 spec:
+  storageClassName: sdv-local-storage
   capacity:
     storage: 4Gi
-  volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: sdv-local-storage
   local:
     path: /mnt/data/es-{{ i }}
+    type: DirectoryOrCreate 
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -25,8 +24,9 @@ spec:
           operator: In
           values:
           - {{ k8s_node_name.stdout }}
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
   claimRef:
     namespace: monitoring
-    name: elasticsearch-master-elasticsearch-master-{{ i }}
-    storageClassName: sdv-local-storage
+    name: elasticsearch-master
 {% endfor %}
