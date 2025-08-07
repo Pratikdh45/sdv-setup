@@ -24,9 +24,9 @@ spec:
         - key: kubernetes.io/hostname
           operator: In
           values:
-          - {{ k8s_node_name.stdout }}        
-  claimRef:
-    namespace: monitoring
-    name: elasticsearch-master-elasticsearch-master-{{ i }}
-    storageClassName: sdv-local-storage
+          - {{ k8s_node_name.stdout }}
+#  claimRef:
+#    namespace: monitoring
+#    name: elasticsearch-master-elasticsearch-master-{{ i }}
+#    storageClassName: sdv-local-storage
 {% endfor %}
