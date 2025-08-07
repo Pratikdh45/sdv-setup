@@ -1,4 +1,20 @@
 ---
+#################### Use this section only if you are running separately ELK role ##########################################################
+
+- name: Get Kubernetes node name
+  command: kubectl get nodes -o jsonpath='{.items[0].metadata.name}'
+  register: k8s_node_name
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+ 
+- name: Debug - Kubernetes node name
+  debug:
+    var: k8s_node_name.stdout
+ 
+
+###############################################################################################################################
+
 - name: Install Kubernetes Python library
   ansible.builtin.pip:
     name: kubernetes
@@ -16,50 +32,6 @@
   become: true
   become_user: root
 
-#################### Use this section only if you are running separately ELK role ##########################################################
-
-- name: Get Kubernetes node name
-  command: kubectl get nodes -o jsonpath='{.items[0].metadata.name}'
-  register: k8s_node_name
-  changed_when: false
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
- 
-- name: Debug - Kubernetes node name
-  debug:
-    var: k8s_node_name.stdout
- 
-# - name: Debug - Full kubectl get nodes output
-#   command: kubectl get nodes
-#   register: kubectl_get_nodes_full_output
-#   changed_when: false
-#   failed_when: false
-#   environment:
-#     KUBECONFIG: /etc/kubernetes/admin.conf
-# 
-# - name: Debug - Print full kubectl get nodes output
-#   debug:
-#     var: kubectl_get_nodes_full_output.stdout_lines
-# 
-# - name: Debug - Kubernetes node name used for PV
-#   debug:
-#     var: k8s_node_name.stdout
-#
-# - name: Set private_ip from user input to ingress_ip
-#   set_fact:
-#     ingress_ip: "{{ k8s_node_name.stdout }}"
-#
-# - name: Debug - Server public IP
-#   debug:
-#     var: k8s_node_name.stdout
-
-
-###############################################################################################################################
-
-
-
-
-
 
 - name: Add Elastic Helm repository
   kubernetes.core.helm_repository:
@@ -67,75 +39,6 @@
     repo_url: "https://helm.elastic.co"
   become: true
   become_user: root
-
-
-
-# - name: Clean up any failed Elasticsearch release
-#   kubernetes.core.helm:
-#     name: elasticsearch
-#     release_namespace: monitoring
-#     state: absent
-#   become: true
-#   become_user: root
-
-# - name: Manually delete orphaned Kibana helm scripts ConfigMap
-#   kubernetes.core.k8s:
-#     kind: ConfigMap
-#     name: kibana-kibana-helm-scripts
-#     namespace: monitoring
-#     state: absent
-#     kubeconfig: /etc/kubernetes/admin.conf
-#   ignore_errors: yes
-#   become: true
-#   become_user: root
-
-# - name: Manually delete orphaned Kibana ServiceAccount
-#   kubernetes.core.k8s:
-#     kind: ServiceAccount
-#     name: pre-install-kibana-kibana
-#     namespace: monitoring
-#     state: absent
-#     kubeconfig: /etc/kubernetes/admin.conf
-#   ignore_errors: yes
-#   become: true
-#   become_user: root
-
-# - name: Manually delete orphaned Kibana pre-install Job
-#   kubernetes.core.k8s:
-#     kind: Job
-#     name: pre-install-kibana-kibana
-#     namespace: monitoring
-#     state: absent
-#     kubeconfig: /etc/kubernetes/admin.conf
-#   ignore_errors: yes
-#   become: true
-#   become_user: root
-
-# - name: Clean up any failed Kibana release
-#   kubernetes.core.helm:
-#     name: kibana
-#     release_namespace: monitoring
-#     state: absent
-#   become: true
-#   become_user: root
-
-# - name: Clean up any failed Logstash release
-#   kubernetes.core.helm:
-#     name: logstash
-#     release_namespace: monitoring
-#     state: absent
-#   become: true
-#   become_user: root
-
-# - name: Clean up any failed Filebeat release
-#   kubernetes.core.helm:
-#     name: filebeat
-#     release_namespace: monitoring
-#     state: absent
-#   become: true
-#   become_user: root
-
-
 
 ###############################################################################################################################
 
