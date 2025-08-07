@@ -48,7 +48,9 @@
   kubernetes.core.k8s:
     resource_definition: "{{ lookup('template', 'elasticsearch-pvs.yml.j2') }}"
     state: present
+    namespace: monitoring
     kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
   become: true
   become_user: root
 
