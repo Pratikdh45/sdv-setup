@@ -72,7 +72,17 @@
       persistence:
         enabled: true
         storageClassName: sdv-local-storage
+        accessModes:
+          - ReadWriteOnce
         size: "4Gi"
+
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"          
+          operator: "Exists"
+          effect: "NoSchedule"
+    kubeconfig: /etc/kubernetes/admin.conf
+  become: true
+  become_user: root
 
 # - name: Wait for Elasticsearch cluster to be ready
 #   kubernetes.core.k8s_info:

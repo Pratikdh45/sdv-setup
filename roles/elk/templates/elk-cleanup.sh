@@ -3,6 +3,10 @@
 # This script forcefully removes all components of the ELK stack deployed by the Ansible role.
 # It is designed to be run from your Ubuntu server if a Helm deployment becomes corrupted.
 #
+kubectl delete pv elasticsearch-pv-0
+kubectl delete pv elasticsearch-pv-1
+kubectl delete pv elasticsearch-pv-2
+
 
 echo "--- Uninstalling ELK Helm Releases (errors for 'not found' are OK) ---"
 helm uninstall elasticsearch -n monitoring || true
