@@ -74,164 +74,164 @@
         storageClassName: sdv-local-storage
         size: "4Gi"
 
-- name: Wait for Elasticsearch cluster to be ready
-  kubernetes.core.k8s_info:
-    kind: StatefulSet
-    name: elasticsearch-master
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-  register: es_statefulset
-  until: es_statefulset.resources | length > 0 and (es_statefulset.resources[0].status.readyReplicas | default(0)) == 3
-  retries: 60  # Wait for up to 10 minutes (60 * 10s)
-  delay: 10
-  become: true
-  become_user: root
+# - name: Wait for Elasticsearch cluster to be ready
+#   kubernetes.core.k8s_info:
+#     kind: StatefulSet
+#     name: elasticsearch-master
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   register: es_statefulset
+#   until: es_statefulset.resources | length > 0 and (es_statefulset.resources[0].status.readyReplicas | default(0)) == 3
+#   retries: 60  # Wait for up to 10 minutes (60 * 10s)
+#   delay: 10
+#   become: true
+#   become_user: root
 
 
-- name: Deploy Kibana
-  kubernetes.core.helm:
-    name: kibana
-    chart_ref: elastic/kibana
-    release_namespace: monitoring
-    values:
-      elasticsearchHosts: "https://elasticsearch-master:9200"
-      resources:
-        requests:
-          cpu: "100m"
-          memory: "1Gi"
-        limits:
-          cpu: "1000m"
-          memory: "1Gi"
-  become: true
-  become_user: root
+# - name: Deploy Kibana
+#   kubernetes.core.helm:
+#     name: kibana
+#     chart_ref: elastic/kibana
+#     release_namespace: monitoring
+#     values:
+#       elasticsearchHosts: "https://elasticsearch-master:9200"
+#       resources:
+#         requests:
+#           cpu: "100m"
+#           memory: "1Gi"
+#         limits:
+#           cpu: "1000m"
+#           memory: "1Gi"
+#   become: true
+#   become_user: root
 
-- name: Wait for Kibana Deployment to be ready
-  kubernetes.core.k8s_info:
-    kind: Deployment
-    name: kibana-kibana
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-  register: kibana_deployment
-  until: kibana_deployment.resources | length > 0 and (kibana_deployment.resources[0].status.readyReplicas | default(0)) == 1
-  retries: 30
-  delay: 10
-  become: true
-  become_user: root
+# - name: Wait for Kibana Deployment to be ready
+#   kubernetes.core.k8s_info:
+#     kind: Deployment
+#     name: kibana-kibana
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   register: kibana_deployment
+#   until: kibana_deployment.resources | length > 0 and (kibana_deployment.resources[0].status.readyReplicas | default(0)) == 1
+#   retries: 30
+#   delay: 10
+#   become: true
+#   become_user: root
 
-- name: Deploy Logstash
-  kubernetes.core.helm:
-    name: logstash
-    chart_ref: elastic/logstash
-    release_namespace: monitoring
-    values:
-      # replicas: 2 ## <-- HPA now controls the replica count.
-      autoscaling:
-        enabled: true
-        minReplicas: 2
-        maxReplicas: 5
-        targetCPUUtilizationPercentage: 80
-      elasticsearch:
-        hosts: ["elasticsearch-master:9200"]
-      logstashPipeline:
-        logstash.conf: |
-          input {
-            beats {
-              port => 5044
-            }
-          }
-          output {
-            elasticsearch {
-              hosts => ["http://elasticsearch-master:9200"]
-            }
-          }
-  become: true
-  become_user: root
+# - name: Deploy Logstash
+#   kubernetes.core.helm:
+#     name: logstash
+#     chart_ref: elastic/logstash
+#     release_namespace: monitoring
+#     values:
+#       # replicas: 2 ## <-- HPA now controls the replica count.
+#       autoscaling:
+#         enabled: true
+#         minReplicas: 2
+#         maxReplicas: 5
+#         targetCPUUtilizationPercentage: 80
+#       elasticsearch:
+#         hosts: ["elasticsearch-master:9200"]
+#       logstashPipeline:
+#         logstash.conf: |
+#           input {
+#             beats {
+#               port => 5044
+#             }
+#           }
+#           output {
+#             elasticsearch {
+#               hosts => ["http://elasticsearch-master:9200"]
+#             }
+#           }
+#   become: true
+#   become_user: root
 
-- name: Wait for Logstash Deployment to be ready
-  kubernetes.core.k8s_info:
-    kind: Deployment
-    name: logstash-logstash
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-  register: logstash_deployment
-  until: logstash_deployment.resources | length > 0 and (logstash_deployment.resources[0].status.readyReplicas | default(0)) >= 2
-  retries: 30
-  delay: 10
-  become: true
-  become_user: root
+# - name: Wait for Logstash Deployment to be ready
+#   kubernetes.core.k8s_info:
+#     kind: Deployment
+#     name: logstash-logstash
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   register: logstash_deployment
+#   until: logstash_deployment.resources | length > 0 and (logstash_deployment.resources[0].status.readyReplicas | default(0)) >= 2
+#   retries: 30
+#   delay: 10
+#   become: true
+#   become_user: root
   
-- name: Deploy Kibana Ingress
-  kubernetes.core.k8s:
-    src: "{{ playbook_dir }}/../roles/elk/templates/kibana-ingress.yml"
-    state: present
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+# - name: Deploy Kibana Ingress
+#   kubernetes.core.k8s:
+#     src: "{{ playbook_dir }}/../roles/elk/templates/kibana-ingress.yml"
+#     state: present
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#     validate_certs: no
+#   become: true
+#   become_user: root
 
-- name: Deploy Filebeat
-  kubernetes.core.helm:
-    name: filebeat
-    chart_ref: elastic/filebeat
-    release_namespace: monitoring
-    values:
-      filebeatConfig:
-        filebeat.yml: |
-          filebeat.inputs:
-          - type: container
-            paths:
-              - /var/log/containers/*.log
-          output.logstash:
-            hosts: ["logstash-logstash:5044"]
-  become: true
-  become_user: root
+# - name: Deploy Filebeat
+#   kubernetes.core.helm:
+#     name: filebeat
+#     chart_ref: elastic/filebeat
+#     release_namespace: monitoring
+#     values:
+#       filebeatConfig:
+#         filebeat.yml: |
+#           filebeat.inputs:
+#           - type: container
+#             paths:
+#               - /var/log/containers/*.log
+#           output.logstash:
+#             hosts: ["logstash-logstash:5044"]
+#   become: true
+#   become_user: root
 
-- name: Wait for Filebeat DaemonSet to be ready
-  kubernetes.core.k8s_info:
-    kind: DaemonSet
-    name: filebeat-filebeat
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-  register: filebeat_daemonset
-  until: filebeat_daemonset.resources | length > 0 and (filebeat_daemonset.resources[0].status.numberReady | default(0)) == (filebeat_daemonset.resources[0].status.desiredNumberScheduled | default(1))
-  retries: 30
-  delay: 10
-  become: true
-  become_user: root
+# - name: Wait for Filebeat DaemonSet to be ready
+#   kubernetes.core.k8s_info:
+#     kind: DaemonSet
+#     name: filebeat-filebeat
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   register: filebeat_daemonset
+#   until: filebeat_daemonset.resources | length > 0 and (filebeat_daemonset.resources[0].status.numberReady | default(0)) == (filebeat_daemonset.resources[0].status.desiredNumberScheduled | default(1))
+#   retries: 30
+#   delay: 10
+#   become: true
+#   become_user: root
 
-- name: Ensure logs/elk directory exists
-  ansible.builtin.file:
-    path: "{{ playbook_dir }}/../logs/elk"
-    state: directory
-    mode: '0755'
-  become: true
-  become_user: root
+# - name: Ensure logs/elk directory exists
+#   ansible.builtin.file:
+#     path: "{{ playbook_dir }}/../logs/elk"
+#     state: directory
+#     mode: '0755'
+#   become: true
+#   become_user: root
 
-- name: Wait for Elasticsearch secret to be created
-  kubernetes.core.k8s_info:
-    kind: Secret
-    name: elasticsearch-es-elastic-user
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-  register: elastic_secret
-  until: elastic_secret.resources | length > 0
-  retries: 30
-  delay: 10
-  become: true
-  become_user: root
+# - name: Wait for Elasticsearch secret to be created
+#   kubernetes.core.k8s_info:
+#     kind: Secret
+#     name: elasticsearch-es-elastic-user
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   register: elastic_secret
+#   until: elastic_secret.resources | length > 0
+#   retries: 30
+#   delay: 10
+#   become: true
+#   become_user: root
 
-- name: Decode Elasticsearch elastic user password
-  ansible.builtin.shell: echo "{{ elastic_secret.resources[0].data.elastic }}" | base64 --decode
-  register: decoded_elastic_password
-  changed_when: false
-  when: elastic_secret.resources | length > 0 and 'elastic' in elastic_secret.resources[0].data
+# - name: Decode Elasticsearch elastic user password
+#   ansible.builtin.shell: echo "{{ elastic_secret.resources[0].data.elastic }}" | base64 --decode
+#   register: decoded_elastic_password
+#   changed_when: false
+#   when: elastic_secret.resources | length > 0 and 'elastic' in elastic_secret.resources[0].data
 
-- name: Save Elasticsearch credentials to file
-  ansible.builtin.copy:
-    content: "Username: elastic\nPassword: {{ decoded_elastic_password.stdout }}\n"
-    dest: "{{ playbook_dir }}/../logs/elk/credentials.txt"
-    mode: '0600'
-  when: decoded_elastic_password.stdout is defined and decoded_elastic_password.stdout | length > 0
-  become: true
-  become_user: root
+# - name: Save Elasticsearch credentials to file
+#   ansible.builtin.copy:
+#     content: "Username: elastic\nPassword: {{ decoded_elastic_password.stdout }}\n"
+#     dest: "{{ playbook_dir }}/../logs/elk/credentials.txt"
+#     mode: '0600'
+#   when: decoded_elastic_password.stdout is defined and decoded_elastic_password.stdout | length > 0
+#   become: true
+#   become_user: root
