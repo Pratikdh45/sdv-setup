@@ -5,7 +5,7 @@
 #
 kubectl delete pv elasticsearch-pv-0
 kubectl delete pv elasticsearch-pv-1
-kubectl delete pv elasticsearch-pv-2
+
 
 
 echo "--- Uninstalling ELK Helm Releases (errors for 'not found' are OK) ---"

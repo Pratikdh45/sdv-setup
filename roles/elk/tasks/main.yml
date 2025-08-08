@@ -21,63 +21,98 @@
     state: present
   become: true
 
-- name: Create host paths for Elasticsearch PVs
-  ansible.builtin.file:
-    path: "/mnt/data/es-{{ item }}"
-    state: directory
-    owner: 1000
-    group: 1000
-    mode: '0775'
-  loop: [0, 1, 2]
-  become: true
-  become_user: root
+# - name: Create host paths for Elasticsearch PVs
+#   ansible.builtin.file:
+#     path: "/mnt/data/es-{{ item }}"
+#     state: directory
+#     owner: 1000
+#     group: 1000
+#     mode: '0775'
+#   loop: [0, 1]
+#   become: true
+#   become_user: root
 
 
-- name: Add Elastic Helm repository
-  kubernetes.core.helm_repository:
-    name: elastic
-    repo_url: "https://helm.elastic.co"
-  become: true
-  become_user: root
+# - name: Add Elastic Helm repository
+#   kubernetes.core.helm_repository:
+#     name: elastic
+#     repo_url: "https://helm.elastic.co"
+#   become: true
+#   become_user: root
 
 ###############################################################################################################################
 
 
 
-- name: Deploy Elasticsearch PVs
-  kubernetes.core.k8s:
-    resource_definition: "{{ lookup('template', 'elasticsearch-pvs.yml.j2') }}"
-    state: present
+# - name: Deploy Elasticsearch PVs
+#   kubernetes.core.k8s:
+#     resource_definition: "{{ lookup('template', 'elasticsearch-pvs.yml.j2') }}"
+#     state: present
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#     validate_certs: no
+#   become: true
+#   become_user: root
+
+# - name: Deploy Elasticsearch
+#   kubernetes.core.helm:
+#     name: elasticsearch
+#     chart_ref: "/home/ubuntu/sdv-setup/charts/elasticsearch"
+#     release_namespace: monitoring
+#     create_namespace: yes
+#     values:
+#       replicas: 2
+#       minimumMasterNodes: 2
+#       esJavaOpts: "-Xmx1g -Xms1g"
+#       resources:
+#         requests:
+#           cpu: "100m"
+#           memory: "2Gi"
+#         limits:
+#           cpu: "1000m"
+#           memory: "2Gi"
+#       persistence:
+#         enabled: true
+#         storageClassName: sdv-local-storage
+#         accessModes:
+#           - ReadWriteOnce
+#         size: "4Gi"
+#       tolerations:
+#         - key: "node-role.kubernetes.io/control-plane"          
+#           operator: "Exists"
+#           effect: "NoSchedule"
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   become: true
+#   become_user: root
+
+- name: Wait for Elasticsearch cluster to be ready
+  kubernetes.core.k8s_info:
+    kind: StatefulSet
+    name: elasticsearch-master
     namespace: monitoring
     kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
+  register: es_statefulset
+  until: es_statefulset.resources | length > 0 and (es_statefulset.resources[0].status.readyReplicas | default(0)) == 3
+  retries: 10  
+  delay: 10
   become: true
   become_user: root
 
-- name: Deploy Elasticsearch
+
+- name: Deploy Kibana
   kubernetes.core.helm:
-    name: elasticsearch
-    chart_ref: "/home/ubuntu/sdv-setup/charts/elasticsearch"
+    name: kibana
+    chart_ref: "/home/ubuntu/sdv-setup/charts/kibana"
     release_namespace: monitoring
-    create_namespace: yes
     values:
-      replicas: 2
-      minimumMasterNodes: 2
-      esJavaOpts: "-Xmx1g -Xms1g"
+      elasticsearchHosts: "https://elasticsearch-master:9200"
       resources:
         requests:
           cpu: "100m"
-          memory: "2Gi"
+          memory: "1Gi"
         limits:
           cpu: "1000m"
-          memory: "2Gi"
-      persistence:
-        enabled: true
-        storageClassName: sdv-local-storage
-        accessModes:
-          - ReadWriteOnce
-        size: "4Gi"
-
+          memory: "1Gi"
       tolerations:
         - key: "node-role.kubernetes.io/control-plane"          
           operator: "Exists"
@@ -85,37 +120,6 @@
     kubeconfig: /etc/kubernetes/admin.conf
   become: true
   become_user: root
-
-# - name: Wait for Elasticsearch cluster to be ready
-#   kubernetes.core.k8s_info:
-#     kind: StatefulSet
-#     name: elasticsearch-master
-#     namespace: monitoring
-#     kubeconfig: /etc/kubernetes/admin.conf
-#   register: es_statefulset
-#   until: es_statefulset.resources | length > 0 and (es_statefulset.resources[0].status.readyReplicas | default(0)) == 3
-#   retries: 60  # Wait for up to 10 minutes (60 * 10s)
-#   delay: 10
-#   become: true
-#   become_user: root
-
-
-# - name: Deploy Kibana
-#   kubernetes.core.helm:
-#     name: kibana
-#     chart_ref: elastic/kibana
-#     release_namespace: monitoring
-#     values:
-#       elasticsearchHosts: "https://elasticsearch-master:9200"
-#       resources:
-#         requests:
-#           cpu: "100m"
-#           memory: "1Gi"
-#         limits:
-#           cpu: "1000m"
-#           memory: "1Gi"
-#   become: true
-#   become_user: root
 
 # - name: Wait for Kibana Deployment to be ready
 #   kubernetes.core.k8s_info:

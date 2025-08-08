@@ -1,178 +1,207 @@
-# Ansible Kubernetes Monitoring Stack Documentation
+# SDV Setup: Ansible Deployment for a Full Application Stack on Kubernetes
 
-## Table of Contents
-1. [Overview](#overview)
-2. [Project Structure](#project-structure)
-3. [Components](#components)
-4. [Setup and Configuration](#setup-and-configuration)
-5. [Deployment Process](#deployment-process)
-6. [Monitoring Stack](#monitoring-stack)
-7. [Testing](#testing)
-8. [Troubleshooting](#troubleshooting)
+## 1. Overview
 
-## Overview
-This project contains Ansible playbooks and roles for deploying a comprehensive Kubernetes monitoring stack. The stack includes Prometheus, Grafana, and Node Exporter for collecting and visualizing metrics from Kubernetes clusters.
+This project provides a fully automated solution for deploying a multi-component application stack on a Kubernetes cluster using Ansible. It handles everything from the base operating system and Kubernetes setup to the deployment of a full monitoring suite, a MySQL database, and a frontend application.
 
-## Project Structure
+## 2. Architecture Diagram
+
+```mermaid
+graph TD
+    A[Ansible Control Node] -->|SSH| B(Target VM / Server);
+
+    subgraph B
+        C{Ansible Roles Execution};
+        C --> D[OS & Python Setup];
+        C --> E[Kubernetes Installation];
+        C --> F[Application Deployment];
+    end
+
+    subgraph Kubernetes Cluster
+        G[Namespace: sdv];
+        H[Namespace: monitoring];
+        I[Namespace: midware];
+        J[Namespace: ingress-nginx]
+    end
+
+    F --> G;
+    F --> H;
+    F --> I;
+    F --> J;
+
+    subgraph G
+        K[MySQL Deployment];
+        L[MySQL Service];
+    end
+
+    subgraph H
+        M[Prometheus Deployment];
+        N[Grafana Deployment];
+        O[Node Exporter DaemonSet];
+    end
+
+    subgraph I
+        P[Frontend Deployment];
+        Q[Middleware Deployment];
+    end
+
+    subgraph J
+        R[NGINX Ingress Controller];
+    end
+
+    O -- Metrics --> M;
+    M -- Datasource --> N;
+    R -- Routes Traffic --> P;
+    R -- Routes Traffic --> N;
+    R -- Routes Traffic --> M;
+
 ```
-ansible-testing/
-├── ansible.cfg              # Ansible configuration file
-├── group_vars/
-│   └── all.yml             # Global variables
-├── host_vars/
-│   └── 3.17.25.69.yml      # Host-specific variables
-├── inventories/
-│   ├── dev                 # Development environment inventory
-│   ├── prod                # Production environment inventory
-│   ├── qa                  # QA environment inventory
-│   └── staging             # Staging environment inventory
-├── playbooks/
-│   ├── deploy_apps.yml     # Application deployment playbook
-│   ├── deploy_monitoring.yml # Monitoring stack deployment
-│   └── site.yml           # Main site playbook
-└── roles/
-    ├── grafana/           # Grafana deployment role
-    ├── k8s_setup/        # Kubernetes setup role
-    ├── monitoring/       # General monitoring role
-    ├── nginx/           # NGINX configuration role
-    ├── node_exporter/   # Node Exporter deployment
-    ├── prometheus/      # Prometheus deployment
-    └── python/         # Python environment setup
+
+### Component Communication Flow:
+
+1.  **Ansible & Target VM**: The Ansible control node connects to the target VM via SSH to execute the playbooks and roles.
+2.  **Ansible & Kubernetes**: Ansible roles install `containerd.io`, `kubeadm`, `kubelet`, and `kubectl`, then initialize a Kubernetes cluster on the VM.
+3.  **Application Stack**: Ansible then deploys the full application stack into different namespaces within the cluster:
+    *   **`sdv`**: Contains the MySQL database.
+    *   **`monitoring`**: Contains Prometheus, Grafana, and Node Exporter.
+    *   **`midware`**: Contains the frontend and middleware applications.
+    *   **`ingress-nginx`**: Contains the NGINX Ingress Controller.
+4.  **Monitoring Data Flow**:
+    *   `Node Exporter` runs on each node to collect system-level metrics.
+    *   `Prometheus` scrapes metrics from Node Exporter.
+    *   `Grafana` uses Prometheus as a data source to visualize the metrics.
+5.  **Ingress Flow**:
+    *   The `NGINX Ingress Controller` routes external traffic to the appropriate services within the cluster based on the hostname.
+
+## 3. Project Structure
+
+```
+/home/pratikdhumane/ch-work/ansible-work/sdv-setup/
+├───.gitignore
+├───ansible.cfg
+├───documentation.md
+├───k8s_cleanup.sh
+├───requirements.yml
+├───group_vars/
+│   └───all.yml
+├───host_vars/
+│   └───localhost.yml
+├───inventories/
+│   ├───dev
+│   └───...
+├───playbooks/
+│   └───site.yml
+└───roles/
+    ├───OSdetection/
+    ├───python/
+    ├───k8s_setup/
+    ├───pro-graf/
+    ├───mysql/
+    └───frontend/
 ```
 
-## Components
+## 4. Deployment Process
 
-### Core Components
-1. **Prometheus**
-   - Purpose: Time-series database and monitoring system
-   - Location: `roles/prometheus/`
-   - Key files: `prometheus-deployment.yml`
+The entire deployment is orchestrated by the main playbook `playbooks/site.yml`. To run it:
 
-2. **Grafana**
-   - Purpose: Metrics visualization and dashboarding
-   - Location: `roles/grafana/`
-   - Key files: `grafana-deployment.yml`
-
-3. **Node Exporter**
-   - Purpose: System metrics collection
-   - Location: `roles/node_exporter/`
-   - Key files: 
-     - `node-exporter-daemonset.yml`
-     - `node-exporter-service.yml`
-
-### Supporting Components
-1. **NGINX**
-   - Purpose: Reverse proxy and load balancing
-   - Location: `roles/nginx/`
-   - Configuration: `nginx.yml`
-
-2. **Python Environment**
-   - Purpose: Runtime environment setup
-   - Location: `roles/python/`
-   - Templates: `config.ini.j2`, `nginx.conf.j2`
-
-## Setup and Configuration
-
-### Prerequisites
-- Ansible 2.9+
-- Python 3.x
-- Kubernetes cluster access
-- SSH access to target hosts
-
-### Initial Setup
-1. Configure ansible.cfg:
-   ```ini
-   [defaults]
-   inventory = inventories/dev
-   remote_user = ansible
-   host_key_checking = False
-   ```
-
-2. Set up inventory files in `inventories/` directory
-3. Configure global variables in `group_vars/all.yml`
-4. Adjust host-specific variables in `host_vars/`
-
-## Deployment Process
-
-### Step 1: Basic Infrastructure
 ```bash
-ansible-playbook playbooks/site.yml -i inventories/dev
+ansible-playbook playbooks/site.yml
 ```
 
-### Step 2: Monitoring Stack
+This will execute the roles in the following order:
+
+1.  `OSdetection`: Detects the OS and sets up prerequisites.
+2.  `python`: Installs Python.
+3.  `k8s_setup`: Initializes the Kubernetes cluster.
+4.  `pro-graf`: Deploys the Prometheus and Grafana monitoring stack, along with the NGINX Ingress Controller.
+5.  `mysql`: Deploys the MySQL database.
+6.  `frontend`: Deploys the frontend and middleware.
+
+During the `pro-graf` role, you will be prompted to enter the public/elastic IP of the server. This is required to correctly configure the `/etc/hosts` file on your local machine for accessing the Grafana and Prometheus UIs.
+
+## 5. Validation and Verification
+
+Here’s how to check that all components have been deployed correctly inside the VM.
+
+**Important:** When running `kubectl` commands on the server, you must use `sudo`.
+
+### 5.1. Check All Pods
+
+This command gives you a complete overview of all running applications across all namespaces.
+
 ```bash
-ansible-playbook playbooks/deploy_monitoring.yml -i inventories/dev
+sudo kubectl get pods -A
 ```
 
-### Step 3: Application Deployment
+**Expected Output:**
+
+You should see pods for `calico`, `coredns`, `etcd`, `kube-apiserver`, `kube-controller-manager`, `kube-proxy`, `kube-scheduler`, `grafana`, `node-exporter`, `prometheus`, `mysql`, `frontend`, and `middleware` in a `Running` state.
+
+### 5.2. Check Deployments
+
+Verify that the declarative state of your applications is healthy.
+
 ```bash
-ansible-playbook playbooks/deploy_apps.yml -i inventories/dev
+sudo kubectl get deployments -A
 ```
 
-## Monitoring Stack
+**Expected Output:**
 
-### Prometheus Configuration
-- Data retention: 15 days
-- Scrape interval: 30s
-- Alert rules: Located in `roles/prometheus/files/rules/`
+Look for deployments for `grafana`, `prometheus`, `mysql`, `frontend`, and `middleware`, and ensure the `READY` column shows that all replicas are available (e.g., `1/1`).
 
-### Grafana Setup
-- Default dashboards included
-- Data source: Prometheus
-- Default admin credentials in `group_vars/all.yml`
+### 5.3. Check Services
 
-### Node Exporter
-- Deployed as DaemonSet
-- Metrics port: 9100
-- System metrics collection interval: 15s
+Check how the applications are exposed within and outside the cluster.
 
-## Testing
+```bash
+sudo kubectl get services -A
+```
 
-### Prerequisites
-- Python test dependencies
-- Access to test environment
+**Expected Output:**
 
-### Running Tests
-1. Unit tests:
-   ```bash
-   ansible-playbook playbooks/site.yml --check
-   ```
+You should see services for `kubernetes`, `grafana`, `prometheus`, and `mysql`.
 
-2. Integration tests:
-   ```bash
-   ansible-playbook playbooks/deploy_monitoring.yml --check
-   ```
+### 5.4. Validate MySQL Database and User
 
-## Troubleshooting
+1.  **Get the MySQL pod name:**
 
-### Common Issues
-1. **Connection Issues**
-   - Check SSH access
-   - Verify inventory file configuration
-   - Ensure correct SSH keys are available
+    ```bash
+    POD_NAME=$(sudo kubectl get pods -n sdv -l app=mysql -o jsonpath='{.items[0].metadata.name}')
+    ```
 
-2. **Deployment Failures**
-   - Check Ansible logs in `ansible.log`
-   - Verify Kubernetes cluster access
-   - Check resource availability
+2.  **Connect to the pod and check the database and user:**
 
-3. **Monitoring Issues**
-   - Verify Prometheus targets
-   - Check Grafana data source configuration
-   - Ensure Node Exporter metrics are accessible
+    ```bash
+    sudo kubectl exec -n sdv $POD_NAME -- mysql -h 127.0.0.1 -P 3306 -u root -p'Pa$$W0Rd654' -e "SHOW DATABASES LIKE 'sdv_data'; SELECT user, host FROM mysql.user WHERE user = 'sdvuser';"
+    ```
 
-### Support
-For additional support:
-1. Check the project's issue tracker
-2. Review Ansible documentation
-3. Contact the infrastructure team
+### 5.5. Accessing Services
 
----
+To access the Grafana and Prometheus UIs, you must edit your **local** `/etc/hosts` file. The playbook will provide the exact instructions at the end of the run. The instructions will look like this:
 
-## License
-This project is licensed under the MIT License.
+```
+####################################################################################
+# To access the Grafana and Prometheus UIs, you must edit your LOCAL /etc/hosts file.
+# Open the file with sudo privileges, for example: sudo nano /etc/hosts
+#
+# Add the following lines, then save and close the file:
+#   <your-public-ip> sdv-grafana
+#   <your-public-ip> sdv-prometheus
+#
+# After saving, you can access the UIs at:
+#   Grafana: http://sdv-grafana
+#   Prometheus: http://sdv-prometheus
+#
+# The Grafana admin password is saved in the logs/grafana_admin_password.txt file.
+####################################################################################
+```
 
-## Contributors
-- DevOps Team
-- Infrastructure Team
-- Platform Engineering Team
+## 6. Cleanup
+
+To completely remove all resources and reset the VM to its pre-deployment state, use the cleanup script:
+
+```bash
+./k8s_cleanup.sh
+```
+
+This script will delete all the Kubernetes resources and reset the Kubernetes cluster.
