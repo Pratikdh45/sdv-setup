@@ -112,6 +112,9 @@ volumeClaimTemplate:
       storage: 4Gi
   storageClassName: "sdv-local-storage"
 
+storageClass:
+  create: true
+
 rbac:
   create: false
   serviceAccountAnnotations: {}
