@@ -44,19 +44,15 @@
 
 
 
-# - name: Deploy Elasticsearch PVs
-#   kubernetes.core.k8s:
-#     resource_definition: "{{ lookup('template', 'elasticsearch-pvs.yml.j2') }}"
-#     state: present
-#     namespace: monitoring
-#     kubeconfig: /etc/kubernetes/admin.conf
-#     validate_certs: no
-#   become: true
-#   become_user: root
-
-- name: "INFO: Deferring PersistentVolume creation to the Elasticsearch Helm chart"
-  ansible.builtin.debug:
-    msg: "The task 'Deploy Elasticsearch PVs' has been disabled. The Helm chart will now manage the PersistentVolumeClaims, which will be dynamically provisioned by the 'sdv-local-storage' StorageClass."
+- name: Deploy Elasticsearch PVs
+  kubernetes.core.k8s:
+    resource_definition: "{{ lookup('template', 'elasticsearch-pvs.yml.j2') }}"
+    state: present
+    namespace: monitoring
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
 
 - name: Deploy Elasticsearch
   kubernetes.core.helm:

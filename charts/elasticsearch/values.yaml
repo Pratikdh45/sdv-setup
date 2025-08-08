@@ -90,10 +90,10 @@ esJavaOpts: "" # example: "-Xmx1g -Xms1g"
 resources:
   requests:
     cpu: "100m"
-    memory: "2Gi"
+    memory: "1Gi"
   limits:
     cpu: "100m"
-    memory: "2Gi"
+    memory: "1Gi"
 
 initResources: {}
 # limits:
@@ -105,15 +105,14 @@ initResources: {}
 
 networkHost: "0.0.0.0"
 
+
+
 volumeClaimTemplate:
   accessModes: ["ReadWriteOnce"]
   resources:
     requests:
       storage: 4Gi
-  storageClassName: "sdv-local-storage"
-
-storageClass:
-  create: true
+  storageClassName: ["sdv-local-storage"]
 
 rbac:
   create: false
