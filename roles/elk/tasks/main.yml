@@ -21,16 +21,16 @@
     state: present
   become: true
 
-# - name: Create host paths for Elasticsearch PVs
-#   ansible.builtin.file:
-#     path: "/mnt/data/es-{{ item }}"
-#     state: directory
-#     owner: 1000
-#     group: 1000
-#     mode: '0775'
-#   loop: [0, 1]
-#   become: true
-#   become_user: root
+- name: Create host paths for Elasticsearch PVs
+  ansible.builtin.file:
+    path: "/mnt/data/es-{{ item }}"
+    state: directory
+    owner: 1000
+    group: 1000
+    mode: '0775'
+  loop: [0, 1]
+  become: true
+  become_user: root
 
 
 # - name: Add Elastic Helm repository
@@ -40,50 +40,50 @@
 #   become: true
 #   become_user: root
 
-###############################################################################################################################
+##############################################################################################################################
 
 
 
-# - name: Deploy Elasticsearch PVs
-#   kubernetes.core.k8s:
-#     resource_definition: "{{ lookup('template', 'elasticsearch-pvs.yml.j2') }}"
-#     state: present
-#     namespace: monitoring
-#     kubeconfig: /etc/kubernetes/admin.conf
-#     validate_certs: no
-#   become: true
-#   become_user: root
+- name: Deploy Elasticsearch PVs
+  kubernetes.core.k8s:
+    resource_definition: "{{ lookup('template', 'elasticsearch-pvs.yml.j2') }}"
+    state: present
+    namespace: monitoring
+    kubeconfig: /etc/kubernetes/admin.conf
+    validate_certs: no
+  become: true
+  become_user: root
 
-# - name: Deploy Elasticsearch
-#   kubernetes.core.helm:
-#     name: elasticsearch
-#     chart_ref: "/home/ubuntu/sdv-setup/charts/elasticsearch"
-#     release_namespace: monitoring
-#     create_namespace: yes
-#     values:
-#       replicas: 2
-#       minimumMasterNodes: 2
-#       esJavaOpts: "-Xmx1g -Xms1g"
-#       resources:
-#         requests:
-#           cpu: "100m"
-#           memory: "2Gi"
-#         limits:
-#           cpu: "1000m"
-#           memory: "2Gi"
-#       persistence:
-#         enabled: true
-#         storageClassName: sdv-local-storage
-#         accessModes:
-#           - ReadWriteOnce
-#         size: "4Gi"
-#       tolerations:
-#         - key: "node-role.kubernetes.io/control-plane"          
-#           operator: "Exists"
-#           effect: "NoSchedule"
-#     kubeconfig: /etc/kubernetes/admin.conf
-#   become: true
-#   become_user: root
+- name: Deploy Elasticsearch
+  kubernetes.core.helm:
+    name: elasticsearch
+    chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/elasticsearch"
+    release_namespace: monitoring
+    create_namespace: yes
+    values:
+      replicas: 2
+      minimumMasterNodes: 2
+      esJavaOpts: "-Xmx1g -Xms1g"
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "2Gi"
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"
+      persistence:
+        enabled: true
+        storageClassName: sdv-local-storage
+        accessModes:
+          - ReadWriteOnce
+        size: "4Gi"
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"          
+          operator: "Exists"
+          effect: "NoSchedule"
+    kubeconfig: /etc/kubernetes/admin.conf
+  become: true
+  become_user: root
 
 - name: Wait for Elasticsearch cluster to be ready
   kubernetes.core.k8s_info:
@@ -102,7 +102,7 @@
 - name: Deploy Kibana
   kubernetes.core.helm:
     name: kibana
-    chart_ref: "/home/ubuntu/sdv-setup/charts/kibana"
+    chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/kibana"
     release_namespace: monitoring
     values:
       elasticsearchHosts: "https://elasticsearch-master:9200"
