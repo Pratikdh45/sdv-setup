@@ -28,7 +28,7 @@
     owner: 1000
     group: 1000
     mode: '0775'
-  loop: [0, 1]
+  loop: [0]
   become: true
   become_user: root
 
@@ -61,8 +61,8 @@
     release_namespace: "{{ elk_namespace }}"
     create_namespace: yes
     values:
-      replicas: 2
-      minimumMasterNodes: 2
+      replicas: 1
+      minimumMasterNodes: 1
       esJavaOpts: "{{ elasticsearch_esJavaOpts }}"
       resources:
         requests:
