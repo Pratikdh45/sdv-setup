@@ -57,26 +57,26 @@
 - name: Deploy Elasticsearch
   kubernetes.core.helm:
     name: elasticsearch
-    chart_ref: "/home/{{ ansible_user }}/sdv-setup/charts/elasticsearch"
-    release_namespace: monitoring
+    chart_ref: "{{ elasticsearch_chart_ref }}"
+    release_namespace: "{{ elk_namespace }}"
     create_namespace: yes
     values:
       replicas: 2
       minimumMasterNodes: 2
-      esJavaOpts: "-Xmx1g -Xms1g"
+      esJavaOpts: "{{ elasticsearch_esJavaOpts }}"
       resources:
         requests:
-          cpu: "100m"
-          memory: "2Gi"
+          cpu: "{{ elk_cpu_request }}"
+          memory: "{{ elk_memory_request }}"
         limits:
-          cpu: "1000m"
-          memory: "2Gi"
+          cpu: "{{ elk_cpu_limit }}"
+          memory: "{{ elk_memory_limit }}"
       persistence:
         enabled: true
-        storageClassName: sdv-local-storage
+        storageClassName: "{{ elk_storageClassName }}"
         accessModes:
           - ReadWriteOnce
-        size: "4Gi"
+        size: "{{ elk_storageSize }}"
       tolerations:
         - key: "node-role.kubernetes.io/control-plane"          
           operator: "Exists"
@@ -102,17 +102,17 @@
 - name: Deploy Kibana
   kubernetes.core.helm:
     name: kibana
-    chart_ref: "/home/{{ ansible_user }}/sdv-setup/charts/kibana"
-    release_namespace: monitoring
+    chart_ref: "{{ kibana_chart_ref }}"
+    release_namespace: "{{ elk_namespace }}"
     values:
-      elasticsearchHosts: "https://elasticsearch-master:9200"
+      elasticsearchHosts: "{{ elasticsearchHosts_url }}"
       resources:
         requests:
-          cpu: "100m"
-          memory: "1Gi"
+          cpu: "{{ elk_cpu_request }}"
+          memory: "{{ elk_memory_request }}"
         limits:
-          cpu: "1000m"
-          memory: "1Gi"
+          cpu: "{{ elk_cpu_limit }}"
+          memory: "{{ elk_memory_limit }}"
       tolerations:
         - key: "node-role.kubernetes.io/control-plane"          
           operator: "Exists"

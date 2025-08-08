@@ -1,0 +1,23 @@
+####################
+
+elasticsearch_chart_ref: "/home/ubuntu/sdv-setup/charts/elasticsearch"
+kibana_chart_ref: "/home/ubuntu/sdv-setup/charts/kibana"
+logstash_chart_ref: "/home/ubuntu/sdv-setup/charts/logstash"
+filebeat_chart_ref: "/home/ubuntu/sdv-setup/charts/filebeat"
+
+elk_namespace: "monitoring"
+
+elk_storageClassName: "sdv-local-storage"
+elk_storageSize: "4Gi"
+
+
+elk_cpu_request: "100m"
+elk_cpu_limit: "1000m"
+
+
+elk_memory_request: "1Gi"
+elk_memory_limit: "1Gi"
+
+elasticsearch_esJavaOpts: "-Xmx1g -Xms1g"
+
+elasticsearchHosts_url: "https://elasticsearch-master:9200"
