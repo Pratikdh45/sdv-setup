@@ -112,7 +112,7 @@ volumeClaimTemplate:
   resources:
     requests:
       storage: 4Gi
-  storageClassName: ["sdv-local-storage"]
+  storageClassName: "sdv-local-storage"
 
 rbac:
   create: false
