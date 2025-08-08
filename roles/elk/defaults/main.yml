@@ -1,15 +1,15 @@
 ####################
 
-# elasticsearch_chart_ref: "/home/ubuntu/sdv-setup/charts/elasticsearch"
-# kibana_chart_ref: "/home/ubuntu/sdv-setup/charts/kibana"
-# logstash_chart_ref: "/home/ubuntu/sdv-setup/charts/logstash"
-# filebeat_chart_ref: "/home/ubuntu/sdv-setup/charts/filebeat"
+elasticsearch_chart_ref: "/home/ubuntu/sdv-setup/charts/elasticsearch"
+kibana_chart_ref: "/home/ubuntu/sdv-setup/charts/kibana"
+logstash_chart_ref: "/home/ubuntu/sdv-setup/charts/logstash"
+filebeat_chart_ref: "/home/ubuntu/sdv-setup/charts/filebeat"
 
 
-elasticsearch_chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/elasticsearch"
-kibana_chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/kibana"
-logstash_chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/logstash"
-filebeat_chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/filebeat"
+# elasticsearch_chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/elasticsearch"
+# kibana_chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/kibana"
+# logstash_chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/logstash"
+# filebeat_chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/filebeat"
 
 elk_namespace: "monitoring"
 

@@ -61,8 +61,8 @@
     release_namespace: "{{ elk_namespace }}"
     create_namespace: yes
     values:
-      replicas: 2
-      minimumMasterNodes: 2
+      replicas: 1
+      minimumMasterNodes: 1
       esJavaOpts: "{{ elasticsearch_esJavaOpts }}"
       resources:
         requests:
