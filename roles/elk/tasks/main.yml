@@ -57,7 +57,7 @@
 - name: Deploy Elasticsearch
   kubernetes.core.helm:
     name: elasticsearch
-    chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/elasticsearch"
+    chart_ref: "{{ ansible_user_dir }}/sdv-setup/charts/elasticsearch"
     release_namespace: monitoring
     create_namespace: yes
     values:
@@ -102,7 +102,7 @@
 - name: Deploy Kibana
   kubernetes.core.helm:
     name: kibana
-    chart_ref: "{{ ansible_env.HOME }}/sdv-setup/charts/kibana"
+    chart_ref: "{{ ansible_user.dir }}/sdv-setup/charts/kibana"
     release_namespace: monitoring
     values:
       elasticsearchHosts: "https://elasticsearch-master:9200"
