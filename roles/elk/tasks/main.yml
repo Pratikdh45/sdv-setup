@@ -57,7 +57,7 @@
 - name: Deploy Elasticsearch
   kubernetes.core.helm:
     name: elasticsearch
-    chart_ref: "/home/ubuntu/sdv-setup/helm-charts/elasticsearch/helm-charts/elasticsearch"
+    chart_ref: "/home/ubuntu/sdv-setup/charts/elasticsearch"
     release_namespace: monitoring
     create_namespace: yes
     values:
