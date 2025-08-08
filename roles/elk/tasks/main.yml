@@ -64,13 +64,13 @@
       replicas: 1
       minimumMasterNodes: 1
       esJavaOpts: "{{ elasticsearch_esJavaOpts }}"
-      resources:
-        requests:
-          cpu: "{{ elk_cpu_request }}"
-          memory: "{{ elk_memory_request }}"
-        limits:
-          cpu: "{{ elk_cpu_limit }}"
-          memory: "{{ elk_memory_limit }}"
+      # resources:
+      #   requests:
+      #     cpu: "{{ elk_cpu_request }}"
+      #     memory: "{{ elk_memory_request }}"
+      #   limits:
+      #     cpu: "{{ elk_cpu_limit }}"
+      #     memory: "{{ elk_memory_limit }}"
       persistence:
         enabled: true
         storageClassName: "{{ elk_storageClassName }}"
@@ -106,13 +106,13 @@
     release_namespace: "{{ elk_namespace }}"
     values:
       elasticsearchHosts: "{{ elasticsearchHosts_url }}"
-      resources:
-        requests:
-          cpu: "{{ elk_cpu_request }}"
-          memory: "{{ elk_memory_request }}"
-        limits:
-          cpu: "{{ elk_cpu_limit }}"
-          memory: "{{ elk_memory_limit }}"
+      # resources:
+      #   requests:
+      #     cpu: "{{ elk_cpu_request }}"
+      #     memory: "{{ elk_memory_request }}"
+      #   limits:
+      #     cpu: "{{ elk_cpu_limit }}"
+      #     memory: "{{ elk_memory_limit }}"
       tolerations:
         - key: "node-role.kubernetes.io/control-plane"          
           operator: "Exists"
