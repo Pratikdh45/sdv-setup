@@ -3,18 +3,14 @@
 # This script forcefully removes all components of the ELK stack deployed by the Ansible role.
 # It is designed to be run from your Ubuntu server if a Helm deployment becomes corrupted.
 #
-
-echo "\n--- Deleting Elasticsearch Persistent Volume ---"
-kubectl delete pv elasticsearch-pv-0
-kubectl delete pv elasticsearch-pv-1
-
-
-
 echo "\n--- Deleting Elasticsearch Persistent Volume Claims ---"
 kubectl delete pvc -n monitoring -l app=elasticsearch-master --ignore-not-found=true
 kubectl delete pvc -n monitoring -l app=elasticsearch-data --ignore-not-found=true
 
 
+echo "\n--- Deleting Elasticsearch Persistent Volume ---"
+kubectl delete pv elasticsearch-pv-0
+kubectl delete pv elasticsearch-pv-1
 
 echo "--- Uninstalling ELK Helm Releases (errors for 'not found' are OK) ---"
 helm uninstall elasticsearch -n monitoring || true

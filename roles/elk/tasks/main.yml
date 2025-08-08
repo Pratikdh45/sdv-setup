@@ -73,7 +73,7 @@
           memory: "{{ elk_memory_limit }}"
       persistence:
         enabled: true
-        # storageClassName: "{{ elk_storageClassName }}"
+        storageClassName: "{{ elk_storageClassName }}"
         accessModes:
           - ReadWriteOnce
         size: "{{ elk_storageSize }}"
