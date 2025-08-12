@@ -92,7 +92,7 @@
     namespace: monitoring
     kubeconfig: /etc/kubernetes/admin.conf
   register: es_statefulset
-  until: es_statefulset.resources | length > 0 and (es_statefulset.resources[0].status.readyReplicas | default(0)) == 3
+  until: es_statefulset.resources | length > 0 and (es_statefulset.resources[0].status.readyReplicas | default(0)) == 1
   retries: 10  
   delay: 10
   become: true
