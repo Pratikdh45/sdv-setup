@@ -5,7 +5,7 @@
 #
 echo "\n--- Deleting Elasticsearch Persistent Volume Claims ---"
 kubectl delete pvc -n monitoring -l app=elasticsearch-master --ignore-not-found=true
-kubectl delete pvc -n monitoring -l app=elasticsearch-data --ignore-not-found=true
+# kubectl delete pvc -n monitoring -l app=elasticsearch-data --ignore-not-found=true
 
 
 echo "\n--- Deleting Elasticsearch Persistent Volume ---"
