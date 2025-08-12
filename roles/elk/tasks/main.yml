@@ -163,46 +163,53 @@
 # #  become: true
 # #  become_user: root
 
-# - name: Deploy Logstash
-#   kubernetes.core.helm:
-#     name: logstash
-#     chart_ref: elastic/logstash
-#     release_namespace: monitoring
-#     values:
-#       # replicas: 2 ## <-- HPA now controls the replica count.
-#       autoscaling:
-#         enabled: true
-#         minReplicas: 2
-#         maxReplicas: 5
-#         targetCPUUtilizationPercentage: 80
-#       extraEnvs:
-#         - name: "ELASTIC_PASSWORD"
-#           valueFrom:
-#             secretKeyRef:
-#               name: elasticsearch-master-credentials
-#               key: password
-#       secretMounts:
-#         - name: elasticsearch-master-certs
-#           secretName: elasticsearch-master-certs
-#           path: /usr/share/logstash/certs/
-#       logstashPipeline:
-#         logstash.conf: |
-#           input {
-#             beats {
-#               port => 5044
-#             }
-#           }
-#           output {
-#             elasticsearch {
-#               hosts => ["https://elasticsearch-master:9200"]
-#               user => "elastic"
-#               password => "${ELASTIC_PASSWORD}"
-#               ssl => true
-#               cacert => "/usr/share/logstash/certs/ca.crt"
-#             }
-#           }
-#   become: true
-#   become_user: root
+- name: Deploy Logstash
+  kubernetes.core.helm:
+    name: logstash
+    chart_ref: elastic/logstash
+    release_namespace: monitoring
+    values:
+      # replicas: 2 ## <-- HPA now controls the replica count.
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 5
+        targetCPUUtilizationPercentage: 80
+      extraEnvs:
+        - name: "ELASTIC_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-master-credentials
+              key: password
+      secretMounts:
+        - name: elasticsearch-master-certs
+          secretName: elasticsearch-master-certs
+          path: /usr/share/logstash/certs/
+      logstashPipeline:
+        logstash.conf: |
+          input {
+            beats {
+              port => 5044
+            }
+          }
+          output {
+            elasticsearch {
+              hosts => ["https://elasticsearch-master:9200"]
+              user => "elastic"
+              password => "${ELASTIC_PASSWORD}"
+              ssl => true
+              cacert => "/usr/share/logstash/certs/ca.crt"
+            }
+          }
+      service:
+        type: ClusterIP
+        ports:
+          - name: beats
+            port: 5044
+            protocol: TCP
+            targetPort: 5044
+  become: true
+  become_user: root
 
 - name: Wait for Logstash StatefulSet to be ready
   kubernetes.core.k8s_info:
