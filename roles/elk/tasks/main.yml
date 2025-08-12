@@ -1,16 +1,16 @@
 ---
 #################### Use this section only if you are running separately ELK role ##########################################################
 
-# - name: Get Kubernetes node name
-#   command: kubectl get nodes -o jsonpath='{.items[0].metadata.name}'
-#   register: k8s_node_name
-#   changed_when: false
-#   environment:
-#     KUBECONFIG: /etc/kubernetes/admin.conf
+- name: Get Kubernetes node name
+  command: kubectl get nodes -o jsonpath='{.items[0].metadata.name}'
+  register: k8s_node_name
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
  
-# - name: Debug - Kubernetes node name
-#   debug:
-#     var: k8s_node_name.stdout
+- name: Debug - Kubernetes node name
+  debug:
+    var: k8s_node_name.stdout
  
 
 ###############################################################################################################################

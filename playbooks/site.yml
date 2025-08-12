@@ -16,8 +16,8 @@
   roles:
     - OSdetection
     - python
-    - k8s_setup
-    - monitoring
+    # - k8s_setup
+    # - monitoring
     # - mysql
     # - frontend
     - elk
