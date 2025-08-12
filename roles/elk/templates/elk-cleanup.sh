@@ -9,8 +9,8 @@ kubectl delete pvc -n monitoring -l app=elasticsearch-data --ignore-not-found=tr
 
 
 echo "\n--- Deleting Elasticsearch Persistent Volume ---"
-kubectl delete pv elasticsearch-pv-0
-kubectl delete pv elasticsearch-pv-1
+kubectl delete pv elasticsearch-pv-0 --ignore-not-found=true
+
 
 echo "--- Uninstalling ELK Helm Releases (errors for 'not found' are OK) ---"
 helm uninstall elasticsearch -n monitoring || true
