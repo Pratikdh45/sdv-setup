@@ -134,6 +134,35 @@
   become: true
   become_user: root
 
+#- name: Deploy Logstash
+#  kubernetes.core.helm:
+#    name: logstash
+#    chart_ref: elastic/logstash
+#    release_namespace: monitoring
+#    values:
+#      # replicas: 2 ## <-- HPA now controls the replica count.
+#      autoscaling:
+#        enabled: true
+#        minReplicas: 2
+#        maxReplicas: 5
+#        targetCPUUtilizationPercentage: 80
+#      elasticsearch:
+#        hosts: ["elasticsearch-master:9200"]
+#      logstashPipeline:
+#        logstash.conf: |
+#          input {
+#            beats {
+#              port => 5044
+#            }
+#          }
+#          output {
+#            elasticsearch {
+#              hosts => ["http://elasticsearch-master:9200"]
+#            }
+#          }
+#  become: true
+#  become_user: root
+
 - name: Deploy Logstash
   kubernetes.core.helm:
     name: logstash
@@ -146,8 +175,16 @@
         minReplicas: 2
         maxReplicas: 5
         targetCPUUtilizationPercentage: 80
-      elasticsearch:
-        hosts: ["elasticsearch-master:9200"]
+      extraEnvs:
+        - name: "ELASTIC_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-master-credentials
+              key: password
+      secretMounts:
+        - name: elasticsearch-master-certs
+          secretName: elasticsearch-master-certs
+          path: /usr/share/logstash/certs/
       logstashPipeline:
         logstash.conf: |
           input {
@@ -157,7 +194,11 @@
           }
           output {
             elasticsearch {
-              hosts => ["http://elasticsearch-master:9200"]
+              hosts => ["https://elasticsearch-master:9200"]
+              user => "elastic"
+              password => "${ELASTIC_PASSWORD}"
+              ssl => true
+              cacert => "/usr/share/logstash/certs/ca.crt"
             }
           }
   become: true
