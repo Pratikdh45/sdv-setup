@@ -21,197 +21,197 @@
     state: present
   become: true
 
-- name: Create host paths for Elasticsearch PVs
-  ansible.builtin.file:
-    path: "/mnt/data/es-{{ item }}"
-    state: directory
-    owner: 1000
-    group: 1000
-    mode: '0775'
-  loop: [0]
-  become: true
-  become_user: root
-
-
-# - name: Add Elastic Helm repository
-#   kubernetes.core.helm_repository:
-#     name: elastic
-#     repo_url: "https://helm.elastic.co"
+# - name: Create host paths for Elasticsearch PVs
+#   ansible.builtin.file:
+#     path: "/mnt/data/es-{{ item }}"
+#     state: directory
+#     owner: 1000
+#     group: 1000
+#     mode: '0775'
+#   loop: [0]
 #   become: true
 #   become_user: root
 
-##############################################################################################################################
+
+# # - name: Add Elastic Helm repository
+# #   kubernetes.core.helm_repository:
+# #     name: elastic
+# #     repo_url: "https://helm.elastic.co"
+# #   become: true
+# #   become_user: root
+
+# ##############################################################################################################################
 
 
 
-- name: Deploy Elasticsearch PVs
-  kubernetes.core.k8s:
-    resource_definition: "{{ lookup('template', 'elasticsearch-pvs.yml.j2') }}"
-    state: present
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-    validate_certs: no
-  become: true
-  become_user: root
+# - name: Deploy Elasticsearch PVs
+#   kubernetes.core.k8s:
+#     resource_definition: "{{ lookup('template', 'elasticsearch-pvs.yml.j2') }}"
+#     state: present
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#     validate_certs: no
+#   become: true
+#   become_user: root
 
-- name: Deploy Elasticsearch
-  kubernetes.core.helm:
-    name: elasticsearch
-    chart_ref: "{{ elasticsearch_chart_ref }}"
-    release_namespace: "{{ elk_namespace }}"
-    create_namespace: yes
-    values:
-      replicas: 1
-      minimumMasterNodes: 1
-      esJavaOpts: "{{ elasticsearch_esJavaOpts }}"
-      # resources:
-      #   requests:
-      #     cpu: "{{ elk_cpu_request }}"
-      #     memory: "{{ elk_memory_request }}"
-      #   limits:
-      #     cpu: "{{ elk_cpu_limit }}"
-      #     memory: "{{ elk_memory_limit }}"
-      persistence:
-        enabled: true
-        storageClassName: "{{ elk_storageClassName }}"
-        accessModes:
-          - ReadWriteOnce
-        size: "{{ elk_storageSize }}"
-      tolerations:
-        - key: "node-role.kubernetes.io/control-plane"          
-          operator: "Exists"
-          effect: "NoSchedule"
-    kubeconfig: /etc/kubernetes/admin.conf
-  become: true
-  become_user: root
+# - name: Deploy Elasticsearch
+#   kubernetes.core.helm:
+#     name: elasticsearch
+#     chart_ref: "{{ elasticsearch_chart_ref }}"
+#     release_namespace: "{{ elk_namespace }}"
+#     create_namespace: yes
+#     values:
+#       replicas: 1
+#       minimumMasterNodes: 1
+#       esJavaOpts: "{{ elasticsearch_esJavaOpts }}"
+#       # resources:
+#       #   requests:
+#       #     cpu: "{{ elk_cpu_request }}"
+#       #     memory: "{{ elk_memory_request }}"
+#       #   limits:
+#       #     cpu: "{{ elk_cpu_limit }}"
+#       #     memory: "{{ elk_memory_limit }}"
+#       persistence:
+#         enabled: true
+#         storageClassName: "{{ elk_storageClassName }}"
+#         accessModes:
+#           - ReadWriteOnce
+#         size: "{{ elk_storageSize }}"
+#       tolerations:
+#         - key: "node-role.kubernetes.io/control-plane"          
+#           operator: "Exists"
+#           effect: "NoSchedule"
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   become: true
+#   become_user: root
 
-- name: Wait for Elasticsearch cluster to be ready
+# - name: Wait for Elasticsearch cluster to be ready
+#   kubernetes.core.k8s_info:
+#     kind: StatefulSet
+#     name: elasticsearch-master
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   register: es_statefulset
+#   until: es_statefulset.resources | length > 0 and (es_statefulset.resources[0].status.readyReplicas | default(0)) == 1
+#   retries: 10  
+#   delay: 10
+#   become: true
+#   become_user: root
+
+
+# - name: Deploy Kibana
+#   kubernetes.core.helm:
+#     name: kibana
+#     chart_ref: "{{ kibana_chart_ref }}"
+#     release_namespace: "{{ elk_namespace }}"
+#     values:
+#       elasticsearchHosts: "{{ elasticsearchHosts_url }}"
+#       # resources:
+#       #   requests:
+#       #     cpu: "{{ elk_cpu_request }}"
+#       #     memory: "{{ elk_memory_request }}"
+#       #   limits:
+#       #     cpu: "{{ elk_cpu_limit }}"
+#       #     memory: "{{ elk_memory_limit }}"
+#       tolerations:
+#         - key: "node-role.kubernetes.io/control-plane"          
+#           operator: "Exists"
+#           effect: "NoSchedule"
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   become: true
+#   become_user: root
+
+# - name: Wait for Kibana Deployment to be ready
+#   kubernetes.core.k8s_info:
+#     kind: Deployment
+#     name: kibana-kibana
+#     namespace: monitoring
+#     kubeconfig: /etc/kubernetes/admin.conf
+#   register: kibana_deployment
+#   until: kibana_deployment.resources | length > 0 and (kibana_deployment.resources[0].status.readyReplicas | default(0)) == 1
+#   retries: 30
+#   delay: 10
+#   become: true
+#   become_user: root
+
+# #- name: Deploy Logstash
+# #  kubernetes.core.helm:
+# #    name: logstash
+# #    chart_ref: elastic/logstash
+# #    release_namespace: monitoring
+# #    values:
+# #      # replicas: 2 ## <-- HPA now controls the replica count.
+# #      autoscaling:
+# #        enabled: true
+# #        minReplicas: 2
+# #        maxReplicas: 5
+# #        targetCPUUtilizationPercentage: 80
+# #      elasticsearch:
+# #        hosts: ["elasticsearch-master:9200"]
+# #      logstashPipeline:
+# #        logstash.conf: |
+# #          input {
+# #            beats {
+# #              port => 5044
+# #            }
+# #          }
+# #          output {
+# #            elasticsearch {
+# #              hosts => ["http://elasticsearch-master:9200"]
+# #            }
+# #          }
+# #  become: true
+# #  become_user: root
+
+# - name: Deploy Logstash
+#   kubernetes.core.helm:
+#     name: logstash
+#     chart_ref: elastic/logstash
+#     release_namespace: monitoring
+#     values:
+#       # replicas: 2 ## <-- HPA now controls the replica count.
+#       autoscaling:
+#         enabled: true
+#         minReplicas: 2
+#         maxReplicas: 5
+#         targetCPUUtilizationPercentage: 80
+#       extraEnvs:
+#         - name: "ELASTIC_PASSWORD"
+#           valueFrom:
+#             secretKeyRef:
+#               name: elasticsearch-master-credentials
+#               key: password
+#       secretMounts:
+#         - name: elasticsearch-master-certs
+#           secretName: elasticsearch-master-certs
+#           path: /usr/share/logstash/certs/
+#       logstashPipeline:
+#         logstash.conf: |
+#           input {
+#             beats {
+#               port => 5044
+#             }
+#           }
+#           output {
+#             elasticsearch {
+#               hosts => ["https://elasticsearch-master:9200"]
+#               user => "elastic"
+#               password => "${ELASTIC_PASSWORD}"
+#               ssl => true
+#               cacert => "/usr/share/logstash/certs/ca.crt"
+#             }
+#           }
+#   become: true
+#   become_user: root
+
+- name: Wait for Logstash StatefulSet to be ready
   kubernetes.core.k8s_info:
     kind: StatefulSet
-    name: elasticsearch-master
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-  register: es_statefulset
-  until: es_statefulset.resources | length > 0 and (es_statefulset.resources[0].status.readyReplicas | default(0)) == 1
-  retries: 10  
-  delay: 10
-  become: true
-  become_user: root
-
-
-- name: Deploy Kibana
-  kubernetes.core.helm:
-    name: kibana
-    chart_ref: "{{ kibana_chart_ref }}"
-    release_namespace: "{{ elk_namespace }}"
-    values:
-      elasticsearchHosts: "{{ elasticsearchHosts_url }}"
-      # resources:
-      #   requests:
-      #     cpu: "{{ elk_cpu_request }}"
-      #     memory: "{{ elk_memory_request }}"
-      #   limits:
-      #     cpu: "{{ elk_cpu_limit }}"
-      #     memory: "{{ elk_memory_limit }}"
-      tolerations:
-        - key: "node-role.kubernetes.io/control-plane"          
-          operator: "Exists"
-          effect: "NoSchedule"
-    kubeconfig: /etc/kubernetes/admin.conf
-  become: true
-  become_user: root
-
-- name: Wait for Kibana Deployment to be ready
-  kubernetes.core.k8s_info:
-    kind: Deployment
-    name: kibana-kibana
-    namespace: monitoring
-    kubeconfig: /etc/kubernetes/admin.conf
-  register: kibana_deployment
-  until: kibana_deployment.resources | length > 0 and (kibana_deployment.resources[0].status.readyReplicas | default(0)) == 1
-  retries: 30
-  delay: 10
-  become: true
-  become_user: root
-
-#- name: Deploy Logstash
-#  kubernetes.core.helm:
-#    name: logstash
-#    chart_ref: elastic/logstash
-#    release_namespace: monitoring
-#    values:
-#      # replicas: 2 ## <-- HPA now controls the replica count.
-#      autoscaling:
-#        enabled: true
-#        minReplicas: 2
-#        maxReplicas: 5
-#        targetCPUUtilizationPercentage: 80
-#      elasticsearch:
-#        hosts: ["elasticsearch-master:9200"]
-#      logstashPipeline:
-#        logstash.conf: |
-#          input {
-#            beats {
-#              port => 5044
-#            }
-#          }
-#          output {
-#            elasticsearch {
-#              hosts => ["http://elasticsearch-master:9200"]
-#            }
-#          }
-#  become: true
-#  become_user: root
-
-- name: Deploy Logstash
-  kubernetes.core.helm:
-    name: logstash
-    chart_ref: elastic/logstash
-    release_namespace: monitoring
-    values:
-      # replicas: 2 ## <-- HPA now controls the replica count.
-      autoscaling:
-        enabled: true
-        minReplicas: 2
-        maxReplicas: 5
-        targetCPUUtilizationPercentage: 80
-      extraEnvs:
-        - name: "ELASTIC_PASSWORD"
-          valueFrom:
-            secretKeyRef:
-              name: elasticsearch-master-credentials
-              key: password
-      secretMounts:
-        - name: elasticsearch-master-certs
-          secretName: elasticsearch-master-certs
-          path: /usr/share/logstash/certs/
-      logstashPipeline:
-        logstash.conf: |
-          input {
-            beats {
-              port => 5044
-            }
-          }
-          output {
-            elasticsearch {
-              hosts => ["https://elasticsearch-master:9200"]
-              user => "elastic"
-              password => "${ELASTIC_PASSWORD}"
-              ssl => true
-              cacert => "/usr/share/logstash/certs/ca.crt"
-            }
-          }
-  become: true
-  become_user: root
-
-- name: Wait for Logstash Deployment to be ready
-  kubernetes.core.k8s_info:
-    kind: Deployment
     name: logstash-logstash
     namespace: monitoring
     kubeconfig: /etc/kubernetes/admin.conf
-  register: logstash_deployment
-  until: logstash_deployment.resources | length > 0 and (logstash_deployment.resources[0].status.readyReplicas | default(0)) >= 2
+  register: logstash_statefulset
+  until: logstash_statefulset.resources | length > 0 and (logstash_statefulset.resources[0].status.readyReplicas | default(0)) == 1
   retries: 30
   delay: 10
   become: true
